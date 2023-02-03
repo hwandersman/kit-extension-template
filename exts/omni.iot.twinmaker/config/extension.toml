@@ -13,7 +13,7 @@ readme  = "docs/README.md"
 changelog = "docs/CHANGELOG.md"
 
 # URL of the extension source repository.
-repository = "https://github.com/NVIDIA-Omniverse/kit-extension-template"
+repository = "https://github.com/hwandersman/kit-extension-template"
 
 # One of categories for UI.
 category = "Example"
@@ -31,10 +31,11 @@ preview_image = "data/preview.png"
 # Use omni.ui to build simple UI
 [dependencies]
 "omni.kit.uiapp" = {}
+"omni.kit.asset_converter" = {}
 
-# Main python module this extension provides, it will be publicly available as "import omni.hello.world".
+# Main python module this extension provides, it will be publicly available as "import omni.iot.twinmaker".
 [[python.module]]
-name = "omni.hello.world"
+name = "omni.iot.twinmaker"
 
 [[test]]
 # Extra dependencies only to be used during test run
