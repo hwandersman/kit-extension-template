@@ -37,6 +37,10 @@ preview_image = "data/preview.png"
 [[python.module]]
 name = "omni.iot.twinmaker"
 
+[python.pipapi]
+requirements = ['scipy']
+use_online_index = true
+
 [[test]]
 # Extra dependencies only to be used during test run
 dependencies = [
