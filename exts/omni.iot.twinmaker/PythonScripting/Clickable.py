@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from omni.kit.scripting import BehaviorScript
 from pxr import Gf
 
-from .Main import get_state
+from .Main import get_state, get_executor
 
 ENTITY_ATTR = 'entityId'
 COMPONENT_ATTR = 'componentName'
@@ -37,7 +37,6 @@ class Clickable(BehaviorScript):
         self._componentName = self.prim.GetAttribute(COMPONENT_ATTR).Get()
         self._propertyName = self.prim.GetAttribute(PROPERTY_ATTR).Get()
 
-    # TODO: Investigate running TwinMaker APIs in a background process
     def setAlarmStatus(self, startTime, endTime):
         result = self._tmClient.get_property_value_history(
             workspaceId=self._workspaceId,
@@ -86,14 +85,15 @@ class Clickable(BehaviorScript):
 
     def on_update(self, current_time: float, delta_time: float):
         state = get_state()
+        executor = get_executor()
         # Fetch data approx every 5 seconds
         frequency = 10
         if state.is_play:
             if round(self._runningTime, 2) % frequency == 0:
                 endTime = datetime.now()
                 startTime = endTime - timedelta(minutes=1)
-                # TODO: Fix long load times that cause OV to be unresponsive
-                # self.setAlarmStatus(date_to_iso(startTime), date_to_iso(endTime))
+                # Fetch alarm status in background process
+                executor.submit(self.setAlarmStatus, date_to_iso(startTime), date_to_iso(endTime))
             self.set_highlight(self._isAlarmActive)
             self._runningTime = self._runningTime + delta_time
         else:

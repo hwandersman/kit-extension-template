@@ -153,8 +153,6 @@ class SceneImporter:
                     # Assuming parent is parsed before child, get the name of the model the tag is attached to
                     primName = parentNode['name']
                     primPath = f'/World/Tags/{primName}'
-                    # TODO: Execute command to add a transform to the disk, or find property to assign it on creation
-                    # TODO: Check that path of script attached is correct
                     tag = Tag(component['valueDataBinding']['dataBindingContext'], primPath)
                     tag.setTransform(parentNode['transform'], node['transform'])
 

@@ -1,3 +1,4 @@
+from  concurrent.futures import ThreadPoolExecutor
 from omni.kit.scripting import BehaviorScript
 
 
@@ -19,11 +20,17 @@ class GameState(object):
 
 
 _state = None
+_executor = None
 
 
 def get_state() -> GameState:
     global _state
     return _state
+
+
+def get_executor():
+    global _executor
+    return _executor
 
 
 class Main(BehaviorScript):
@@ -35,6 +42,9 @@ class Main(BehaviorScript):
         global _state
         if not _state:
             _state = GameState()
+        global _executor
+        if not _executor:
+            _executor = ThreadPoolExecutor(max_workers=4)
         print(f"{__class__.__name__}.on_init()->{self.prim_path}")
 
     def on_destroy(self):
