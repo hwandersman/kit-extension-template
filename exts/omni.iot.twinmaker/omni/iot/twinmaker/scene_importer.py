@@ -8,19 +8,26 @@ from .script_utils import addModelReference, addPrim
 from .prim_transform_utils import TUtil_SetTranslate, TUtil_SetRotateQuat, TUtil_SetScale
 from .tag import Tag
 import os
+import uuid
+
+
+DEFAULT_ASSUME_ROLE_ARN = '[ASSUME_ROLE_ARN]'
 
 # 1. Load scene JSON from S3
 # 2. Parse JSON for gltf/glb assets to load from S3
 # 3. Download and import all assets from S3
 # 4. Set transform of assets as defined in the scene JSON
-
 # Can only support loading single model files (no separate textures / .bin files)
+
+
 class SceneImporter:
-    def __init__(self, workspaceId):
+    def __init__(self, workspaceId, assumeRoleARN=DEFAULT_ASSUME_ROLE_ARN):
         self._workspaceId = workspaceId
         self._region = 'us-east-1'
-        self._tmClient = boto3.client('iottwinmaker', self._region)
-        self._s3Client = boto3.client('s3', self._region)
+
+        self._tmClient = self.__getAWSClient('iottwinmaker', assumeRoleARN)
+        self._s3Client = self.__getAWSClient('s3', assumeRoleARN)
+
         self._sceneJSON = {}
 
         workspaceResult = self._tmClient.get_workspace(
@@ -29,6 +36,23 @@ class SceneImporter:
         workspaceBucketArn = workspaceResult['s3Location']
         # S3 bucket ARN is in the format "arn:aws:s3:::BUCKET_NAME"
         self._workspaceBucket = workspaceBucketArn.split(':::')[1]
+
+    def __getAWSClient(self, serviceName, assumeRoleARN):
+        if assumeRoleARN == DEFAULT_ASSUME_ROLE_ARN:
+            return boto3.client(serviceName, self._region)
+
+        stsClient = boto3.client('sts')
+        response = stsClient.assume_role(
+            RoleArn=assumeRoleARN,
+            RoleSessionName=f'nvidia-ov-session{uuid.uuid1()}',
+            DurationSeconds=1800
+        )
+        newSession = boto3.Session(
+            aws_access_key_id=response['Credentials']['AccessKeyId'],
+            aws_secret_access_key=response['Credentials']['SecretAccessKey'],
+            aws_session_token=response['Credentials']['SessionToken']
+        )
+        return newSession.client(serviceName, self._region)
 
     # Load scene JSON of sceneId into memory
     def load_scene(self, sceneId):

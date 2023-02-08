@@ -1,13 +1,19 @@
 import boto3
+import omni.usd
+import uuid
 from datetime import datetime, timedelta
 from omni.kit.scripting import BehaviorScript
 from pxr import Gf
 
 from .Main import get_state, get_executor
 
+# TODO: Duplicate vars moved to shared location
+WORKSPACE_ATTR = 'workspaceId'
+ASSUME_ROLE_ATTR = 'assumeRoleARN'
 ENTITY_ATTR = 'entityId'
 COMPONENT_ATTR = 'componentName'
 PROPERTY_ATTR = 'propertyName'
+DEFAULT_ASSUME_ROLE_ARN = '[ASSUME_ROLE_ARN]'
 
 
 def date_to_iso(time):
@@ -16,11 +22,12 @@ def date_to_iso(time):
 
 class Clickable(BehaviorScript):
     def on_init(self):
+        self.__init_data_binding()
+
         self._runningTime = 0
 
-        self._workspaceId = 'CookieFactory'
         self._region = 'us-east-1'
-        self._tmClient = boto3.client('iottwinmaker', self._region)
+        self._tmClient = self.__getAWSClient('iottwinmaker')
 
         self._defaultColor = self.prim.GetAttribute('primvars:displayColor').Get()
         self._highlightColor = [Gf.Vec3f(1, 0, 0)] # red
@@ -29,13 +36,39 @@ class Clickable(BehaviorScript):
 
         self.__init_data_binding()
 
-        # print(f"{__class__.__name__}.on_init()->{self.prim_path}")
+        print(f"{__class__.__name__}.on_init()->{self.prim_path}")
 
     # Get attributes from prim with property data binding
     def __init_data_binding(self):
+        # Get shared attributes from Logic object
+        logicPrimPath = '/World/Logic'
+        stage = omni.usd.get_context().get_stage()
+        logicPrim = stage.GetPrimAtPath(logicPrimPath)
+        self._workspaceId = logicPrim.GetAttribute(WORKSPACE_ATTR).Get()
+        self._assumeRoleARN = logicPrim.GetAttribute(ASSUME_ROLE_ATTR).Get()
+
+        # Data binding attributes are on current prim
         self._entityId = self.prim.GetAttribute(ENTITY_ATTR).Get()
         self._componentName = self.prim.GetAttribute(COMPONENT_ATTR).Get()
         self._propertyName = self.prim.GetAttribute(PROPERTY_ATTR).Get()
+
+    # TODO: Duplicate logic moved to shared location
+    def __getAWSClient(self, serviceName):
+        if self._assumeRoleARN == DEFAULT_ASSUME_ROLE_ARN:
+            return boto3.client(serviceName, self._region)
+
+        stsClient = boto3.client('sts')
+        response = stsClient.assume_role(
+            RoleArn=self._assumeRoleARN,
+            RoleSessionName=f'nvidia-ov-session-{uuid.uuid1()}',
+            DurationSeconds=1800
+        )
+        newSession = boto3.Session(
+            aws_access_key_id=response['Credentials']['AccessKeyId'],
+            aws_secret_access_key=response['Credentials']['SecretAccessKey'],
+            aws_session_token=response['Credentials']['SessionToken']
+        )
+        return newSession.client(serviceName, self._region)
 
     def setAlarmStatus(self, startTime, endTime):
         result = self._tmClient.get_property_value_history(
@@ -48,7 +81,6 @@ class Clickable(BehaviorScript):
             endTime=endTime
         )
         values = result['propertyValues']
-        print(f'{self.prim_path} GetPropertyValueHistory length: {len(values)}')
         if len(values) > 0 and len(values[0]) > 0:
             if values[0]['values'][0]['stringValue'] == 'ACTIVE':
                 self._isAlarmActive = True
@@ -86,8 +118,13 @@ class Clickable(BehaviorScript):
     def on_update(self, current_time: float, delta_time: float):
         state = get_state()
         executor = get_executor()
-        # Fetch data approx every 5 seconds
+        # Fetch data approx every 10 seconds
         frequency = 10
+
+        # This script is sometimes initialized before Main.py
+        if state is None:
+            pass
+
         if state.is_play:
             if round(self._runningTime, 2) % frequency == 0:
                 endTime = datetime.now()

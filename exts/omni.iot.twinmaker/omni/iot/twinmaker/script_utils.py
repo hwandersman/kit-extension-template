@@ -13,20 +13,14 @@ def addModelReference(primPath, modelPath):
     )
 
 
-def addPrim(primPath, primType, attributes=None):
-    if attributes is not None:
-        omni.kit.commands.execute(
-            'CreatePrim',
-            prim_type=primType,
-            prim_path=primPath,
-            attributes=attributes
-        )
-    else:
-        omni.kit.commands.execute(
-            'CreatePrim',
-            prim_type=primType,
-            prim_path=primPath
-        )
+def addPrim(primPath, primType):
+    omni.kit.commands.execute(
+        'CreatePrim',
+        prim_type=primType,
+        prim_path=primPath
+    )
+    stage = omni.usd.get_context().get_stage()
+    return stage.GetPrimAtPath(primPath)
 
 
 # Source: https://github.com/mati-nvidia/developer-office-hours/blob/main/exts/maticodes.doh_2023_01_13/scripts/add_script_component.py
@@ -52,3 +46,16 @@ def attachPythonScript(primPath, scriptPath):
         scripts = list(scripts)
     scripts.append(scriptPath)
     attr.Set(scripts)
+
+
+def createAndSetPrimAttr(prim, attrName, attrValue):
+    # 1. Create the attribute
+    omni.kit.commands.execute(
+        "CreateUsdAttributeCommand",
+        prim=prim,
+        attr_name=attrName,
+        attr_type=Sdf.ValueTypeNames.String
+    )
+    # 2. Set the attribute value
+    attr = prim.GetAttribute(attrName)
+    attr.Set(attrValue)

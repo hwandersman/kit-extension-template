@@ -1,7 +1,7 @@
 import omni.kit.commands
 import os
 from pxr import Sdf
-from .script_utils import addPrim, attachPythonScript
+from .script_utils import addPrim, attachPythonScript, createAndSetPrimAttr
 from .prim_transform_utils import TUtil_SetTranslate, TUtil_SetScale
 
 ENTITY_ATTR = 'entityId'
@@ -27,39 +27,11 @@ class Tag:
         stage = omni.usd.get_context().get_stage()
         return stage.GetPrimAtPath(self._primPath)
 
-    def __create_prim_attrs(self):
-        prim = self.__get_prim()
-        omni.kit.commands.execute(
-            "CreateUsdAttributeCommand",
-            prim=prim,
-            attr_name=ENTITY_ATTR,
-            attr_type=Sdf.ValueTypeNames.String
-        )
-        omni.kit.commands.execute(
-            "CreateUsdAttributeCommand",
-            prim=prim,
-            attr_name=COMPONENT_ATTR,
-            attr_type=Sdf.ValueTypeNames.String
-        )
-        omni.kit.commands.execute(
-            "CreateUsdAttributeCommand",
-            prim=prim,
-            attr_name=PROPERTY_ATTR,
-            attr_type=Sdf.ValueTypeNames.String
-        )
-
     def __attach_prim_attrs(self):
-        # 1. Create attributes for each ID
-        self.__create_prim_attrs()
-
-        # 2. Set attributes with each ID value
         prim = self.__get_prim()
-        entityAttr = prim.GetAttribute(ENTITY_ATTR)
-        entityAttr.Set(self._entityId)
-        componentAttr = prim.GetAttribute(COMPONENT_ATTR)
-        componentAttr.Set(self._componentName)
-        propertyAttr = prim.GetAttribute(PROPERTY_ATTR)
-        propertyAttr.Set(self._propertyName)
+        createAndSetPrimAttr(prim, ENTITY_ATTR, self._entityId)
+        createAndSetPrimAttr(prim, COMPONENT_ATTR, self._componentName)
+        createAndSetPrimAttr(prim, PROPERTY_ATTR, self._propertyName)
 
     def __attach_clickable_script(self):
         scriptPath = os.path.abspath(f'{os.path.abspath(__file__)}\\..\\..\\..\\..\\PythonScripting\\Clickable.py')
