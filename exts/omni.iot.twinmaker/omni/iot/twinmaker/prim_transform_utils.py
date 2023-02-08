@@ -44,9 +44,9 @@ def TUtil_SetScale(prim: Usd.Prim, vector):
 
 
 # ---------------------------.
-# Set Rotate.
+# Set Rotate for Quaternions
 # ---------------------------.
-def TUtil_SetRotate(prim: Usd.Prim, vector):
+def TUtil_SetRotateQuat(prim: Usd.Prim, vector):
     # OV rotation calculated in quaternions
     # TM scene rotations are in XYZ radians
     rotation = Rotation.from_euler("xyz", vector)
@@ -62,3 +62,31 @@ def TUtil_SetRotate(prim: Usd.Prim, vector):
     else:
         xformAPI = UsdGeom.XformCommonAPI(prim)
         xformAPI.SetRotate(Gf.Quatf(rV))
+
+
+# ---------------------------.
+# Set Rotate for standard XYZ
+# ---------------------------.
+def TUtil_SetRotate(prim: Usd.Prim, vector):
+    rV = Gf.Vec3f(vector[0], vector[1], vector[2])
+    # Get rotOrder.
+    # If rotation does not exist, rotOrder = UsdGeom.XformCommonAPI.RotationOrderXYZ.
+    xformAPI = UsdGeom.XformCommonAPI(prim)
+    time_code = Usd.TimeCode.Default()
+    _, _, _, _, rotOrder = xformAPI.GetXformVectors(time_code)
+
+    # Convert rotOrder to "xformOp:rotateXYZ" etc.
+    t = xformAPI.ConvertRotationOrderToOpType(rotOrder)
+    rotateAttrName = "xformOp:" + UsdGeom.XformOp.GetOpTypeToken(t)
+
+    # Set rotate.
+    rotate = prim.GetAttribute(rotateAttrName).Get()
+    if rotate != None:
+        # Specify a value for each type.
+        if type(rotate) == Gf.Vec3f:
+            prim.GetAttribute(rotateAttrName).Set(Gf.Vec3f(rV))
+        elif type(rotate) == Gf.Vec3d:
+            prim.GetAttribute(rotateAttrName).Set(Gf.Vec3d(rV))
+    else:
+        # xformOpOrder is also updated.
+        xformAPI.SetRotate(Gf.Vec3f(rV), rotOrder)

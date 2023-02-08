@@ -38,7 +38,7 @@ preview_image = "data/preview.png"
 name = "omni.iot.twinmaker"
 
 [python.pipapi]
-requirements = ['scipy']
+requirements = ['aioboto3, scipy']
 use_online_index = true
 
 [[test]]

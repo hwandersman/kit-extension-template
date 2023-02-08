@@ -4,7 +4,9 @@ import omni.kit.asset_converter as converter
 import omni.kit.commands
 import omni.usd
 from pxr import Sdf
-from .prim_transform_utils import TUtil_SetTranslate, TUtil_SetRotate, TUtil_SetScale
+from .script_utils import addModelReference, addPrim
+from .prim_transform_utils import TUtil_SetTranslate, TUtil_SetRotateQuat, TUtil_SetScale
+from .tag import Tag
 import os
 
 # 1. Load scene JSON from S3
@@ -30,7 +32,7 @@ class SceneImporter:
 
     # Load scene JSON of sceneId into memory
     def load_scene(self, sceneId):
-        print('Loading scene {}'.format(sceneId))
+        print(f'Loading scene {sceneId}')
         # Get scene JSON path in the workspace S3 bucket
         sceneResult = self._tmClient.get_scene(
             workspaceId=self._workspaceId,
@@ -48,7 +50,8 @@ class SceneImporter:
         )
         sceneText = result['Body'].read().decode('utf-8')
         self._sceneJSON = json.loads(sceneText)
-        print('Loaded scene {} with {} nodes'.format(sceneId, len(self._sceneJSON['nodes'])))
+        nodeLen = len(self._sceneJSON['nodes'])
+        print(f'Loaded scene {sceneId} with {nodeLen} nodes')
 
     def __import_progress_callback(current_step: int, total: int):
         print(f"{current_step} of {total}")
@@ -57,7 +60,7 @@ class SceneImporter:
     async def __load_model(self, modelPath):
         modelAlreadyDownloaded = os.path.isfile(modelPath)
         if not modelAlreadyDownloaded:
-            print('Loading model from S3: {}'.format(modelPath))
+            print(f'Loading model from S3: {modelPath}')
             self._s3Client.download_file(
                 self._workspaceBucket,
                 modelPath,
@@ -66,7 +69,7 @@ class SceneImporter:
 
     def __convert_file_name(self, filePath, format):
         fileName = filePath.split('.')[-2]
-        return '{}\\{}.{}'.format(os.getcwd(), fileName, format)
+        return f'{os.getcwd()}\\{fileName}.{format}'
 
     # Convert model to USD
     async def __convert_to_usd(self, modelPath):
@@ -83,12 +86,12 @@ class SceneImporter:
         )
         success = await task.wait_until_finished()
         if not success:
-            print('Failed to load file: {}'.format(modelPath))
+            print(f'Failed to load file: {modelPath}')
             print(task.get_status())
             print(task.get_error_message())
             return None
         else:
-            print('Successfully imported file at path: {}'.format(outputPath))
+            print(f'Successfully imported file at path: {outputPath}')
             return outputPath
 
     # Get prim at a given path
@@ -103,65 +106,64 @@ class SceneImporter:
         if nodeIdx >= len(self._sceneJSON['nodes']):
             return None
 
-        node = self._sceneJSON['nodes'][nodeIdx]
+        nodes = self._sceneJSON['nodes']
+        node = nodes[nodeIdx]
         modelName = node['name']
 
         # Build node path based on parent path
         # Assume 1 parent per child
-        if 'parentReferencePath' not in node:
-            path = '/World/{}'.format(modelName)
+        if 'parent' not in node:
+            # Root node
+            path = f'/World/{modelName}'
         else:
-            path = '{}/{}'.format(node['parentReferencePath'], modelName)
+            # Child node
+            parentReferencePath = nodes[node['parent']]['referencePath']
+            path = f'{parentReferencePath}/{modelName}'
 
         if 'children' in node:
             for childIdx in node['children']:
-                self._sceneJSON['nodes'][childIdx]['parentReferencePath'] = path
-        
+                # Set pointer to parent in children for future reference
+                self._sceneJSON['nodes'][childIdx]['parent'] = nodeIdx
+
+        node['referencePath'] = path
         return path
-
-    # Add reference node to model
-    # Omni can reference a USD or GLTF/GLB file directly
-    def __add_model_reference(self, nodeIdx, modelPath):
-        path = self.__generate_reference_path(nodeIdx)
-
-        if path is not None:
-            omni.kit.commands.execute(
-                'CreateReference',
-                usd_context=omni.usd.get_context(),
-                path_to=Sdf.Path(path),
-                asset_path=modelPath
-            )
-        return path
-
-    def __add_xform_reference(self, nodeIdx):
-        path = self.__generate_reference_path(nodeIdx)
-
-        if path is not None:
-            omni.kit.commands.execute(
-                'CreatePrim',
-                prim_type='Xform',
-                prim_path=path
-            )
 
     async def import_scene_assets(self):
         print('Importing 3D assets for scene')
         nodes = self._sceneJSON['nodes']
+        # Add empty transform as a parent of all tags
+        addPrim('/World/Tags', 'Xform')
         for i in range(len(nodes)):
             node = nodes[i]
             modelPrim = None
             for component in node['components']:
                 if 'uri' in component:
                     modelPath = component['uri']
+                    # 1. Load model from S3
                     await self.__load_model(modelPath)
+                    # 2. Convert model to USD
                     usdFilePath = await self.__convert_to_usd(modelPath)
-                    modelReference = self.__add_model_reference(i, usdFilePath)
-                    modelPrim = self.__get_prim(modelReference)
+                    # 3. Add reference to local USD in stage hierarchy
+                    primPath = self.__generate_reference_path(i)
+                    addModelReference(primPath, usdFilePath)
+                    # 4. Get reference prim to transform it
+                    modelPrim = self.__get_prim(primPath)
+                elif 'valueDataBinding' in component and component['type'] == 'Tag':
+                    parentNode = nodes[node['parent']]
+                    # Assuming parent is parsed before child, get the name of the model the tag is attached to
+                    primName = parentNode['name']
+                    primPath = f'/World/Tags/{primName}'
+                    # TODO: Execute command to add a transform to the disk, or find property to assign it on creation
+                    # TODO: Check that path of script attached is correct
+                    tag = Tag(component['valueDataBinding']['dataBindingContext'], primPath)
+                    tag.setTransform(parentNode['transform'], node['transform'])
 
             if modelPrim is not None:
                 transform = node['transform']
                 TUtil_SetTranslate(modelPrim, transform['position'])
-                TUtil_SetRotate(modelPrim, transform['rotation'])
+                TUtil_SetRotateQuat(modelPrim, transform['rotation'])
                 TUtil_SetScale(modelPrim, transform['scale'])
             # Add empty transform
             elif 'children' in node:
-                self.__add_xform_reference(i)
+                primPath = self.__generate_reference_path(i)
+                addPrim(primPath, 'Xform')
