@@ -81,8 +81,9 @@ class Clickable(BehaviorScript):
             endTime=endTime
         )
         values = result['propertyValues']
-        if len(values) > 0 and len(values[0]) > 0:
-            if values[0]['values'][0]['stringValue'] == 'ACTIVE':
+        if len(values) > 0 and len(values[0]['values']) > 0:
+            value = values[0]['values'][0]['value']['stringValue']
+            if value == 'ACTIVE':
                 self._isAlarmActive = True
 
     def set_highlight(self, shouldHighlight: bool):
