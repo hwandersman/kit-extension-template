@@ -1,5 +1,3 @@
-import aioboto3
-import asyncio
 import boto3
 from datetime import datetime, timedelta
 from omni.kit.scripting import BehaviorScript
@@ -24,8 +22,6 @@ class Clickable(BehaviorScript):
         self._region = 'us-east-1'
         self._tmClient = boto3.client('iottwinmaker', self._region)
 
-        self._awsSession = aioboto3.Session()
-
         self._defaultColor = self.prim.GetAttribute('primvars:displayColor').Get()
         self._highlightColor = [Gf.Vec3f(1, 0, 0)] # red
         self._isAlarmActive = False
@@ -42,23 +38,6 @@ class Clickable(BehaviorScript):
         self._propertyName = self.prim.GetAttribute(PROPERTY_ATTR).Get()
 
     # TODO: Investigate running TwinMaker APIs in a background process
-    async def setAlarmStatusAsync(self, startTime, endTime):
-        async with self._awsSession.resource('iottwinmaker', region_name=self._region) as tm:
-            result = await tm.get_property_value_history(
-                workspaceId=self._workspaceId,
-                entityId=self._entityId,
-                componentName=self._componentName,
-                selectedProperties=[self._propertyName],
-                orderByTime='DESCENDING',
-                startTime=startTime,
-                endTime=endTime
-            )
-            values = result['propertyValues']
-            print(f'{self.prim_path} GetPropertyValueHistory length: {len(values)}')
-            if len(values) > 0 and len(values[0]) > 0:
-                if values[0]['values'][0]['stringValue'] == 'ACTIVE':
-                    self._isAlarmActive = True
-
     def setAlarmStatus(self, startTime, endTime):
         result = self._tmClient.get_property_value_history(
             workspaceId=self._workspaceId,
@@ -105,7 +84,7 @@ class Clickable(BehaviorScript):
         self._runningTime = 0
         # print(f"{__class__.__name__}.on_stop()->{self.prim_path}")
 
-    async def on_update(self, current_time: float, delta_time: float):
+    def on_update(self, current_time: float, delta_time: float):
         state = get_state()
         # Fetch data approx every 5 seconds
         frequency = 10
