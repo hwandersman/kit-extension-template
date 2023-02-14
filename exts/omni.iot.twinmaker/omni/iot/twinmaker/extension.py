@@ -21,12 +21,9 @@ class MyExtension(omni.ext.IExt):
         self._window = ui.Window('AWS IoT TwinMaker', width=300, height=300)
         with self._window.frame:
             with ui.VStack():
-                # workspaceStringModel = ui.SimpleStringModel('[WORKSPACE_ID]')
-                # sceneStringModel = ui.SimpleStringModel('[SCENE_ID]')
-                # assumeRoleStringModel = ui.SimpleStringModel(DEFAULT_ASSUME_ROLE_ARN)
-                workspaceStringModel = ui.SimpleStringModel('CookieFactory')
-                sceneStringModel = ui.SimpleStringModel('CookieFactory')
-                assumeRoleStringModel = ui.SimpleStringModel('arn:aws:iam::540844875673:role/CrossAccountTwinMakerAccess')
+                workspaceStringModel = ui.SimpleStringModel('[WORKSPACE_ID]')
+                sceneStringModel = ui.SimpleStringModel('[SCENE_ID]')
+                assumeRoleStringModel = ui.SimpleStringModel(DEFAULT_ASSUME_ROLE_ARN)
                 ui.Label('Enter your workspaceId')
                 ui.StringField(model=workspaceStringModel)
                 ui.Label('Enter your sceneId')
