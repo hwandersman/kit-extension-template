@@ -60,8 +60,8 @@ def TUtil_SetRotateQuat(prim: Usd.Prim, vector):
         elif type(rot) == Gf.Quatd:
             prim.GetAttribute("xformOp:orient").Set(Gf.Quatd(rV))
     else:
-        xformAPI = UsdGeom.XformCommonAPI(prim)
-        xformAPI.SetRotate(Gf.Quatf(rV))
+        # Some assets use quats and some use standard XYZ
+        TUtil_SetRotate(prim, vector)
 
 
 # ---------------------------.

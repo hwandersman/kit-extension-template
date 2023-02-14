@@ -2,6 +2,8 @@
 
 This project is a template for developing extensions for *Omniverse Kit*.
 
+For information about the AWS IoT TwinMaker extension see [docs/README.md](docs/README.md).
+
 # Getting Started
 
 ## Install Omniverse and some Apps

@@ -34,8 +34,15 @@ class MyExtension(omni.ext.IExt):
                 ui.Label('[Optional] Enter a role to assume')
                 ui.StringField(model=assumeRoleStringModel)
 
-                def on_click():
-                    # 1. Add Main PythonScripting logic
+                # Import TwinMaker scene
+                def on_click_import():
+                    sceneImporter = SceneImporter(workspaceStringModel.as_string, assumeRoleStringModel.as_string)
+                    sceneImporter.load_scene(sceneStringModel.as_string)
+                    asyncio.ensure_future(sceneImporter.import_scene_assets())
+
+                # Add Main PythonScripting logic
+                # TODO: Use event system to order script initialization
+                def on_click_init():
                     logicPrimPath = '/World/Logic'
                     logicPrim = addPrim(logicPrimPath, 'Xform')
                     # Attach attributes to pass info to python script
@@ -45,13 +52,9 @@ class MyExtension(omni.ext.IExt):
                     scriptPath = os.path.abspath(f'{os.path.abspath(__file__)}\\..\\..\\..\\..\\PythonScripting\\Main.py')
                     attachPythonScript(logicPrimPath, scriptPath)
 
-                    # 2. Import TwinMaker scene
-                    sceneImporter = SceneImporter(workspaceStringModel.as_string, assumeRoleStringModel.as_string)
-                    sceneImporter.load_scene(sceneStringModel.as_string)
-                    asyncio.ensure_future(sceneImporter.import_scene_assets())
-
                 with ui.HStack():
-                    ui.Button('IMPORT', clicked_fn=on_click)
+                    ui.Button('INIT', clicked_fn=on_click_init)
+                    ui.Button('IMPORT', clicked_fn=on_click_import)
 
     def on_shutdown(self):
         print('[omni.iot.twinmaker] extension shutdown')
