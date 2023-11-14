@@ -6,14 +6,7 @@ from omni.kit.scripting import BehaviorScript
 from pxr import Gf
 
 from .Main import get_state, get_executor
-
-# TODO: Duplicate vars moved to shared location
-WORKSPACE_ATTR = 'workspaceId'
-ASSUME_ROLE_ATTR = 'assumeRoleARN'
-ENTITY_ATTR = 'entityId'
-COMPONENT_ATTR = 'componentName'
-PROPERTY_ATTR = 'propertyName'
-DEFAULT_ASSUME_ROLE_ARN = '[ASSUME_ROLE_ARN]'
+from ..omni.iot.twinmaker.constants import WORKSPACE_ATTR, ASSUME_ROLE_ATTR, ENTITY_ATTR, COMPONENT_ATTR, PROPERTY_ATTR, DEFAULT_ASSUME_ROLE_ARN, REGION_ATTR
 
 
 def date_to_iso(time):
@@ -26,7 +19,6 @@ class Clickable(BehaviorScript):
 
         self._runningTime = 0
 
-        self._region = 'us-east-1'
         self._tmClient = self.__getAWSClient('iottwinmaker')
 
         self._defaultColor = self.prim.GetAttribute('primvars:displayColor').Get()
@@ -46,6 +38,7 @@ class Clickable(BehaviorScript):
         logicPrim = stage.GetPrimAtPath(logicPrimPath)
         self._workspaceId = logicPrim.GetAttribute(WORKSPACE_ATTR).Get()
         self._assumeRoleARN = logicPrim.GetAttribute(ASSUME_ROLE_ATTR).Get()
+        self._region = logicPrim.GetAttribute(REGION_ATTR)
 
         # Data binding attributes are on current prim
         self._entityId = self.prim.GetAttribute(ENTITY_ATTR).Get()

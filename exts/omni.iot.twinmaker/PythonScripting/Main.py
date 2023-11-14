@@ -9,14 +9,14 @@ class GameState(object):
     def start(self, usd_context):
         self.is_play = True
         # TODO: Ignore all root prims except for "Tags"
-        usd_context.set_pickable('/World/AWSIoTTwinMakerScene', False)
+        usd_context.set_pickable('/World/Scope', False)
 
     def pause(self):
         self.is_play = False
 
     def stop(self, usd_context):
         self.is_play = False
-        usd_context.set_pickable('/World/AWSIoTTwinMakerScene', True)
+        usd_context.set_pickable('/World/Scope', True)
 
 
 _state = None

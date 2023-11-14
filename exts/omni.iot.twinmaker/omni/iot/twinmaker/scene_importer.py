@@ -1,14 +1,12 @@
-import boto3
 import json
 import omni.kit.asset_converter as converter
 import omni.kit.commands
 import omni.usd
-from pxr import Sdf
 from .script_utils import addModelReference, addPrim
 from .prim_transform_utils import TUtil_SetTranslate, TUtil_SetRotateQuat, TUtil_SetScale
+from .aws_utils import getAWSClient
 from .tag import Tag
 import os
-import uuid
 
 
 DEFAULT_ASSUME_ROLE_ARN = '[ASSUME_ROLE_ARN]'
@@ -21,12 +19,11 @@ DEFAULT_ASSUME_ROLE_ARN = '[ASSUME_ROLE_ARN]'
 
 
 class SceneImporter:
-    def __init__(self, workspaceId, assumeRoleARN=DEFAULT_ASSUME_ROLE_ARN):
+    def __init__(self, workspaceId, region, assumeRoleARN=DEFAULT_ASSUME_ROLE_ARN):
         self._workspaceId = workspaceId
-        self._region = 'us-east-1'
 
-        self._tmClient = self.__getAWSClient('iottwinmaker', assumeRoleARN)
-        self._s3Client = self.__getAWSClient('s3', assumeRoleARN)
+        self._tmClient = getAWSClient('iottwinmaker', region, assumeRoleARN)
+        self._s3Client = getAWSClient('s3', region, assumeRoleARN)
 
         self._sceneJSON = {}
 
@@ -36,23 +33,6 @@ class SceneImporter:
         workspaceBucketArn = workspaceResult['s3Location']
         # S3 bucket ARN is in the format "arn:aws:s3:::BUCKET_NAME"
         self._workspaceBucket = workspaceBucketArn.split(':::')[1]
-
-    def __getAWSClient(self, serviceName, assumeRoleARN):
-        if assumeRoleARN == DEFAULT_ASSUME_ROLE_ARN:
-            return boto3.client(serviceName, self._region)
-
-        stsClient = boto3.client('sts')
-        response = stsClient.assume_role(
-            RoleArn=assumeRoleARN,
-            RoleSessionName=f'nvidia-ov-session{uuid.uuid1()}',
-            DurationSeconds=1800
-        )
-        newSession = boto3.Session(
-            aws_access_key_id=response['Credentials']['AccessKeyId'],
-            aws_secret_access_key=response['Credentials']['SecretAccessKey'],
-            aws_session_token=response['Credentials']['SessionToken']
-        )
-        return newSession.client(serviceName, self._region)
 
     # Load scene JSON of sceneId into memory
     def load_scene(self, sceneId):
