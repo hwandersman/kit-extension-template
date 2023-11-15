@@ -3,82 +3,105 @@ from datetime import datetime, timedelta
 from omni.kit.scripting import BehaviorScript
 import concurrent.futures
 from pxr import Sdf, Gf
+import carb.events
 
 from .Main import get_state, get_executor
-from .twinmaker_utils import date_to_iso
-from .omni_utils import hexToVec3, getAllPrimChildren, bindMaterialCommand
+from .omni_utils import hex_to_vec_3
+from .twinmaker_utils import date_to_iso, apply_operator
 from .TwinMaker import TwinMaker, DataBinding, RuleExpression
-from .constants import WORKSPACE_ATTR, ASSUME_ROLE_ATTR, ENTITY_ATTR, COMPONENT_ATTR, PROPERTY_ATTR, REGION_ATTR, RULE_PROP_ATTR, RULE_OP_ATTR, RULE_VAL_ATTR, RULE_MAT_ATTR, BIND_ALL, RULE_COL_ATTR
+from .constants import WORKSPACE_ATTR, ASSUME_ROLE_ATTR, ENTITY_ATTR, COMPONENT_ATTR, PROPERTY_ATTR, REGION_ATTR, RULE_OP_ATTR, RULE_VAL_ATTR, MAT_COLOR_ATTR, CHANGE_MAT_PATH
 
 class ModelShader(BehaviorScript):
     def on_init(self):
         self.__init_attributes()
         
-        self._children = getAllPrimChildren(self.prim, [])
+        self._running_time = 0
 
-        self._runningTime = 0
-
-        self._twinmaker = TwinMaker(self._region, self._assumeRoleARN, self._workspaceId)
+        self._twinmaker = TwinMaker(self._region, self._assume_role_arn, self._workspace_id)
 
         # Fetch property data type
-        self._dataType = self._twinmaker.getPropertyValueType(self._dataBinding)
-        self._dataType = '?'
+        self._data_type = self._twinmaker.get_property_value_type(self._data_binding)
 
-        materialTargets = self.prim.GetRelationship('material:binding').GetTargets()
-        if len(materialTargets) > 0:
-            self._defaultMaterial = materialTargets[0]
+        # Set default values of the material
+        self.__init_material_attributes()
 
-        self._isRuleMatched = False
-        self._changedMaterial = False
+        self._is_rule_matched = False
+        self._changed_material = False
 
-        print(f"{__class__.__name__}.on_init()->{self.prim_path}")
+        carb.log_info(f"{__class__.__name__}.on_init()->{self.prim_path}")
 
     # Get attributes from prim with property data binding
     def __init_attributes(self):
         # Get shared attributes from Logic object
-        logicPrimPath = '/World/Logic'
+        logic_prim_path = '/World/Logic'
         stage = omni.usd.get_context().get_stage()
-        logicPrim = stage.GetPrimAtPath(logicPrimPath)
-        self._workspaceId = logicPrim.GetAttribute(WORKSPACE_ATTR).Get()
-        self._assumeRoleARN = logicPrim.GetAttribute(ASSUME_ROLE_ATTR).Get()
-        self._region = logicPrim.GetAttribute(REGION_ATTR).Get()
+        logic_prim = stage.GetPrimAtPath(logic_prim_path)
+        self._workspace_id = logic_prim.GetAttribute(WORKSPACE_ATTR).Get()
+        self._assume_role_arn = logic_prim.GetAttribute(ASSUME_ROLE_ATTR).Get()
+        self._region = logic_prim.GetAttribute(REGION_ATTR).Get()
 
         # Data binding attributes are on current prim
-        entityId = self.prim.GetAttribute(ENTITY_ATTR).Get()
-        componentName = self.prim.GetAttribute(COMPONENT_ATTR).Get()
-        propertyName = self.prim.GetAttribute(PROPERTY_ATTR).Get()
-        self._dataBinding = DataBinding(entityId, componentName, propertyName)
+        entity_id = self.prim.GetAttribute(ENTITY_ATTR).Get()
+        component_name = self.prim.GetAttribute(COMPONENT_ATTR).Get()
+        property_name = self.prim.GetAttribute(PROPERTY_ATTR).Get()
+        self._data_binding = DataBinding(entity_id, component_name, property_name)
 
         # Rule for data binding attributes: prop op value (e.g. status == "ACTIVE")
-        ruleProp = self.prim.GetAttribute(RULE_PROP_ATTR).Get()
-        ruleOp = self.prim.GetAttribute(RULE_OP_ATTR).Get()
-        ruleVal = self.prim.GetAttribute(RULE_VAL_ATTR).Get()
-        self._ruleExpression = RuleExpression(ruleProp, ruleOp, ruleVal)
+        rule_op = self.prim.GetAttribute(RULE_OP_ATTR).Get()
+        rule_val = self.prim.GetAttribute(RULE_VAL_ATTR).Get()
+        self._rule_expression = RuleExpression(property_name, rule_op, rule_val)
         
         # Material to change to when rule expression is true
-        self._ruleMaterial = self.prim.GetAttribute(RULE_MAT_ATTR).Get()
-        # Color to change to when rule expression is true
-        self._ruleColor = self.prim.GetAttribute(RULE_COL_ATTR).Get()
-        # Update all children prims when rule expression is true
-        self._bindAllChildren = self.prim.GetAttribute(BIND_ALL).Get()
+        mat_color = self.prim.GetAttribute(MAT_COLOR_ATTR).Get()
+        self._mat_color = None if mat_color == '' else hex_to_vec_3(mat_color)
+        change_mat_path = self.prim.GetAttribute(CHANGE_MAT_PATH).Get()
+        self._change_mat_path = None if change_mat_path == '' else change_mat_path
+
+    def __init_material_attributes(self):
+        stage = omni.usd.get_context().get_stage()
+        # Get material
+        material_targets = self.prim.GetRelationship('material:binding').GetTargets()
+        if len(material_targets) > 0:
+            prim_material_path = material_targets[0]
+            shader_path = f'{prim_material_path}/Shader'
+            self._shader_prim = stage.GetPrimAtPath(shader_path)
+            self._default_tint_color = self._shader_prim.GetAttribute('inputs:diffuse_tint').Get()
+            self._default_albedo_add = self._shader_prim.GetAttribute('inputs:albedo_add').Get()
+            self._default_material = prim_material_path
         
-    def bind_material(self, materialPath, color):
-        if self._bindAllChildren:
-            for child in self._children:
-                bindMaterialCommand(child.GetPath(), Sdf.Path(materialPath))
-        else:
-            bindMaterialCommand(self.prim_path, Sdf.Path(materialPath))
+    def update_shader(self, tint_color, albedo_add, material_path):
+        try:
+            if tint_color is not None:
+                self._shader_prim.GetAttribute('inputs:diffuse_tint').Set(tint_color)
+                self._shader_prim.GetAttribute('inputs:albedo_add').Set(albedo_add)
+            elif material_path is not None:
+                omni.kit.commands.execute(
+                    "BindMaterialCommand",
+                    prim_path=self.prim_path,
+                    material_path=Sdf.Path(material_path),
+                    strength=['strongerThanDescendants']
+                )
+        except:
+            pass
     
-    # Rule material and color must be set as attributes on the object
+    # Rule color must be set as attributes on the object
     # Specify whether the rule is matched and the material should change
-    def set_material(self, shouldChange):
-        if shouldChange:
-            self.bind_material(self._ruleMaterial, self._ruleColor)
+    def change_material(self, should_change):
+        if should_change:
+            self.update_shader(self._mat_color, 0.5, self._change_mat_path)
         else:
-            self.bind_material(self._defaultMaterial, self._defaultColor)
+            self.update_shader(self._default_tint_color, self._default_albedo_add, self._default_material)
 
     def is_prim_selected(self):
         return self.selection.is_prim_path_selected(self.prim_path.__str__())
+    
+    def match_rule(self, property_value):
+        is_rule_matched = False
+        if property_value is not None:
+            converted_prop_value = str(property_value) if self._data_type is 'stringValue' else float(property_value)
+            converted_rule_val = str(self._rule_expression.rule_val) if self._data_type is 'stringValue' else float(self._rule_expression.rule_val)
+            is_rule_matched = apply_operator(converted_prop_value, self._rule_expression.rule_op, converted_rule_val)
+        return is_rule_matched
 
     # def on_destroy(self):
         # print(f"{__class__.__name__}.on_destroy()->{self.prim_path}")
@@ -87,11 +110,12 @@ class ModelShader(BehaviorScript):
         # print(f"{__class__.__name__}.on_play()->{self.prim_path}")
 
     def on_pause(self):
-        self._runningTime = 0
+        self._running_time = 0
         # print(f"{__class__.__name__}.on_pause()->{self.prim_path}")
 
     def on_stop(self):
-        self._runningTime = 0
+        self._running_time = 0
+        self.change_material(False)
         # print(f"{__class__.__name__}.on_stop()->{self.prim_path}")
 
     def on_update(self, current_time: float, delta_time: float):
@@ -102,21 +126,22 @@ class ModelShader(BehaviorScript):
         
         # This script is sometimes initialized before Main.py
         if state is None:
-            print('ModelShader state is not defined')
+            carb.log_info('ModelShader state is not defined')
             return
 
         if state.is_play:
             # Math is finicky
-            if round(self._runningTime % frequency, 2) - 0.035 < 0:
-                endTime = datetime.now()
-                startTime = endTime - timedelta(minutes=1)
+            if round(self._running_time % frequency, 2) - 0.015 < 0:
+                end_time = datetime.now()
+                start_time = end_time - timedelta(minutes=1)
                 processes = []
                 # Fetch alarm status in background process
-                future = executor.submit(self._twinmaker.matchRule, self._dataBinding, self._dataType, date_to_iso(startTime), date_to_iso(endTime), self._ruleExpression)
+                future = executor.submit(self._twinmaker.get_latest_property_value, self._data_binding, self._data_type, date_to_iso(start_time), date_to_iso(end_time))
                 processes.append(future)
                 for _ in concurrent.futures.as_completed(processes):
                     result = _.result()
-                    self.set_material(result)
-            self._runningTime = self._runningTime + delta_time
+                    is_rule_matched = self.match_rule(result)
+                    self.change_material(is_rule_matched)
+            self._running_time = self._running_time + delta_time
         else:
-            self.set_material(False)
+            self.change_material(False)

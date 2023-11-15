@@ -1,77 +1,71 @@
-from .aws_utils import getAWSClient
-from .twinmaker_utils import convertDataType, applyOperator
+from .aws_utils import get_aws_client
+from .twinmaker_utils import convert_data_type
+import carb.events
 
 class DataBinding:
-    def __init__(self, entityId, componentName, propertyName):
-        self._entityId = entityId
-        self._componentName = componentName
-        self._propertyName = propertyName
+    def __init__(self, entity_id, component_name, property_name):
+        self._entity_id = entity_id
+        self._component_name = component_name
+        self._property_name = property_name
 
     @property
-    def entityId(self):
-        return self._entityId
+    def entity_id(self):
+        return self._entity_id
     
     @property
-    def componentName(self):
-        return self._componentName
+    def component_name(self):
+        return self._component_name
     
     @property
-    def propertyName(self):
-        return self._propertyName
+    def property_name(self):
+        return self._property_name
     
 class RuleExpression:
-    def __init__(self, ruleProp, ruleOp, ruleVal):
-        self._ruleProp = ruleProp
-        self._ruleOp = ruleOp
-        self._ruleVal = ruleVal
+    def __init__(self, rule_prop, rule_op, rule_val):
+        self._rule_prop = rule_prop
+        self._rule_op = rule_op
+        self._rule_val = rule_val
 
     @property
-    def ruleProp(self):
-        return self._ruleProp
+    def rule_prop(self):
+        return self._rule_prop
     
     @property
-    def ruleOp(self):
-        return self._ruleOp
+    def rule_op(self):
+        return self._rule_op
     
     @property
-    def ruleVal(self):
-        return self._ruleVal
+    def rule_val(self):
+        return self._rule_val
 
 class TwinMaker:
-    def __init__(self, region, assumeRoleARN, workspaceId):
-        self._tmClient = getAWSClient('iottwinmaker', region, assumeRoleARN)
-        self._workspaceId = workspaceId
+    def __init__(self, region, assume_role_arn, workspace_id):
+        self._tm_client = get_aws_client('iottwinmaker', region, assume_role_arn)
+        self._workspace_id = workspace_id
 
-    def getPropertyValueType(self, dataBinding):
-        entityResult = self._tmClient.get_entity(
-            workspaceId=self._workspaceId,
-            entityId=dataBinding.entityId
+    def get_property_value_type(self, data_binding):
+        entity_result = self._tm_client.get_entity(
+            workspaceId=self._workspace_id,
+            entityId=data_binding.entity_id
         )
-        type = entityResult['components'][dataBinding.componentName]['properties'][dataBinding.propertyName]['definition']['dataType']['type']
-        return convertDataType(type)
+        property_type = entity_result['components'][data_binding.component_name]['properties'][data_binding.property_name]['definition']['dataType']['type']
+        return convert_data_type(property_type)
 
-    def getLatestPropertyValue(self, dataBinding, dataType, startTime, endTime):
-        result = self._tmClient.get_property_value_history(
-            workspaceId=self._workspaceId,
-            entityId=dataBinding.entityId,
-            componentName=dataBinding.componentName,
-            selectedProperties=[dataBinding.propertyName],
+    def get_latest_property_value(self, data_binding, data_type, start_time, end_time):
+        result = self._tm_client.get_property_value_history(
+            workspaceId=self._workspace_id,
+            entityId=data_binding.entity_id,
+            componentName=data_binding.component_name,
+            selectedProperties=[data_binding.property_name],
             orderByTime='DESCENDING',
-            startTime=startTime,
-            endTime=endTime
+            startTime=start_time,
+            endTime=end_time
         )
         values = result['propertyValues']
         value = None
         if len(values) > 0 and len(values[0]['values']) > 0:
-            value = values[0]['values'][0]['value'][dataType]
-            print('Property value: ', value)
+            value = values[0]['values'][0]['value'][data_type]
+            print_value = f'Entity/component/property: {data_binding.entity_id}/{data_binding.component_name}/{data_binding.property_name} Time: {end_time} Property value: {value}'
+            carb.log_info(print_value)
         
         return value
-
-    def matchRule(self, dataBinding, dataType, startTime, endTime, ruleExpression):
-        isRuleMatched = False
-        if (ruleExpression.ruleProp == dataBinding.propertyName):
-            value = self.getLatestPropertyValue(dataBinding, dataType, startTime, endTime)
-            if value != None:
-                isRuleMatched = applyOperator(value, ruleExpression.ruleOp, ruleExpression.ruleVal)
-        return isRuleMatched

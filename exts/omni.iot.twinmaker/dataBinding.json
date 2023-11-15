@@ -1,0 +1,42 @@
+[
+    {
+        "primPath": "/World/NonSelectable/cardinal_anim_Root/cardinal_anim_Cardinal/cardinal_anim__00_02285_SLDASM/cardinal_anim_CONVEYOR__DORNER_PROTO_ASSY/cardinal_anim__6X50__HIGH_FRICTION__A_DRIVE__ANGLED__3200_SERIES_0/polySurface1016",
+        "entityId": "conveyorEntityId",
+        "componentName": "conveyor",
+        "propertyName": "OperationalStatus",
+        "ruleOperator": "<=",
+        "ruleValue": "3.0",
+        "colorHex": "#FF0000",
+        "changeMaterialPath": ""
+    },
+    {
+        "primPath": "/World/NonSelectable/Cardinal_arm_baked/upper_arm/Section1",
+        "entityId": "robotarmEntityId",
+        "componentName": "robotarm",
+        "propertyName": "Uptime",
+        "ruleOperator": "<",
+        "ruleValue": "400.0",
+        "colorHex": "#FF0000",
+        "changeMaterialPath": ""
+    },
+    {
+        "primPath": "/World/NonSelectable/Static_Cart3/CROSSDOCKCART_LOD0_split/Mesh/CROSSDOCKCART_LOD0/principledshader8",
+        "entityId": "cart3EntityId",
+        "componentName": "cart",
+        "propertyName": "Weight",
+        "ruleOperator": "<",
+        "ruleValue": "55.0",
+        "colorHex": "",
+        "changeMaterialPath": "/World/NonSelectable/Looks/M_Cart_Metal_Red_A"
+    },
+    {
+        "primPath": "/World/Selectable/CartTag",
+        "entityId": "cart0EntityId",
+        "componentName": "cart",
+        "propertyName": "NumberOfPackages",
+        "ruleOperator": "<",
+        "ruleValue": "50.0",
+        "colorHex": "",
+        "changeMaterialPath": "/World/NonSelectable/Looks/Rubber_Textured_Red"
+    }
+]
