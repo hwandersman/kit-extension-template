@@ -1,22 +1,76 @@
 import asyncio
 import omni.ext
 import omni.ui as ui
+import omni.usd
 import os
 import carb.events
 from .scene_importer import DEFAULT_ASSUME_ROLE_ARN, SceneImporter
 from .script_utils import addPrim, attachPythonScript, createAndSetPrimAttr, attachDataBinding
-from .constants import WORKSPACE_ATTR, ASSUME_ROLE_ATTR, REGION_ATTR
+from .constants import WORKSPACE_ATTR, ASSUME_ROLE_ATTR, REGION_ATTR, ENTITY_ATTR
+
+from omni.services.core import main
+from .services.api import router as api_router
 
 
 # Any class derived from `omni.ext.IExt` in top level module (defined in `python.modules` of `extension.toml`) will be
 # instantiated when extension gets enabled and `on_startup(ext_id)` will be called. Later when extension gets disabled
 # on_shutdown() is called.
 class MyExtension(omni.ext.IExt):
+    def __init__(self) -> None:
+        self._router_prefix = '/twinmaker'
+
+    def _get_context(self):
+        return omni.usd.get_context()
+
+    def _on_stage_event(self, e: carb.events.IEvent):
+        if e.type == int(omni.usd.StageEventType.SELECTION_CHANGED):
+            carb.log_info('selection changed ' + str(e))
+            usd_context = self._get_context()
+            stage = usd_context.get_stage()
+            prim_paths = usd_context.get_selection().get_selected_prim_paths()
+            carb.log_info('selected prim paths ' + str(prim_paths))
+            
+            if not prim_paths:
+                # This turns off the manipulator when everything is deselected
+                self._select_entity(None)
+                return
+
+            prim = stage.GetPrimAtPath(prim_paths[0])
+            val = prim.GetAttribute(ENTITY_ATTR).Get()
+            carb.log_info(f'{ENTITY_ATTR} {val}')
+
+    def _on_timeline_event(self, e: carb.events.IEvent):
+        context = self._get_context()
+        if e.type == int(omni.timeline.TimelineEventType.PLAY):
+            carb.log_info('timeline changed PLAY')
+            context.set_pickable('/', False)
+            context.set_pickable('/World/Selectable', True)
+        elif e.type == int(omni.timeline.TimelineEventType.STOP):
+            carb.log_info('timeline changed STOP')
+            context.set_pickable('/', True)
+
+    def _select_entity(self, entity_id):
+        pass
+
     # ext_id is current extension id. It can be used with extension manager to query additional information, like where
     # this extension is located on filesystem.
     def on_startup(self, ext_id):
         carb.log_info('[omni.iot.twinmaker] extension startup')
 
+        # Register router
+        context = self._get_context()
+        self.stage_event_sub = (
+            context
+            .get_stage_event_stream()
+            .create_subscription_to_pop(self._on_stage_event, name='TwinMaker Subscription')
+        )
+        
+        timeline_events = omni.timeline.get_timeline_interface().get_timeline_event_stream()
+        self.timeline_event_sub = timeline_events.create_subscription_to_pop(self._on_timeline_event)
+
+        main.register_router(router=api_router, prefix=self._router_prefix, tags=['TwinMaker'])
+
+        # Setup config window
         self._window = ui.Window('AWS IoT TwinMaker', width=300, height=300)
         with self._window.frame:
             with ui.VStack():
@@ -68,3 +122,5 @@ class MyExtension(omni.ext.IExt):
 
     def on_shutdown(self):
         carb.log_info('[omni.iot.twinmaker] extension shutdown')
+
+        main.deregister_router(router=api_router, prefix=self._router_prefix)
