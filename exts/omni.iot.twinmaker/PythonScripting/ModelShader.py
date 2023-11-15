@@ -47,15 +47,23 @@ class ModelShader(BehaviorScript):
         self._data_binding = DataBinding(entity_id, component_name, property_name)
 
         # Rule for data binding attributes: prop op value (e.g. status == "ACTIVE")
-        rule_op = self.prim.GetAttribute(RULE_OP_ATTR).Get()
-        rule_val = self.prim.GetAttribute(RULE_VAL_ATTR).Get()
-        self._rule_expression = RuleExpression(property_name, rule_op, rule_val)
+        rule_op_list = self.prim.GetAttribute(RULE_OP_ATTR).Get()
+        rule_val_list = self.prim.GetAttribute(RULE_VAL_ATTR).Get()
+        rule_len = len(rule_op_list)
+        rule_expression_list = []
+        for i in range(rule_len):
+            rule_expression_list.append(RuleExpression(property_name, rule_op_list[i], rule_val_list[i]))
+        self._rule_expression_list = rule_expression_list
         
         # Material to change to when rule expression is true
-        mat_color = self.prim.GetAttribute(MAT_COLOR_ATTR).Get()
-        self._mat_color = None if mat_color == '' else hex_to_vec_3(mat_color)
-        change_mat_path = self.prim.GetAttribute(CHANGE_MAT_PATH).Get()
-        self._change_mat_path = None if change_mat_path == '' else change_mat_path
+        # Store to keep track of the original color based on whether a rule will update it
+        self._mat_color_list = self.prim.GetAttribute(MAT_COLOR_ATTR).Get()
+        self._may_change_color = False
+        for color in self._mat_color_list:
+            if color != 'NONE':
+                self._may_change_color = True
+
+        self._mat_path_list = self.prim.GetAttribute(CHANGE_MAT_PATH).Get()
 
     def __init_material_attributes(self):
         stage = omni.usd.get_context().get_stage()
@@ -65,58 +73,71 @@ class ModelShader(BehaviorScript):
             prim_material_path = material_targets[0]
             shader_path = f'{prim_material_path}/Shader'
             self._shader_prim = stage.GetPrimAtPath(shader_path)
-            self._default_tint_color = self._shader_prim.GetAttribute('inputs:diffuse_tint').Get()
-            self._default_albedo_add = self._shader_prim.GetAttribute('inputs:albedo_add').Get()
+
+            # Only fetch attribute if it could be changed by matching a rule
+            self._default_tint_color = None
+            self._default_albedo_add = None
+            if self._may_change_color:
+                self._default_tint_color = self._shader_prim.GetAttribute('inputs:diffuse_tint').Get()
+                # If the attribute is still the default it will show up as 'None'
+                if self._default_tint_color is None:
+                    self._default_tint_color = Gf.Vec3f(1.0, 1.0, 1.0)
+                self._default_albedo_add = self._shader_prim.GetAttribute('inputs:albedo_add').Get()
+                if self._default_albedo_add is None:
+                    self._default_albedo_add = 0
+            
             self._default_material = prim_material_path
-        
-    def update_shader(self, tint_color, albedo_add, material_path):
-        try:
-            if tint_color is not None:
-                self._shader_prim.GetAttribute('inputs:diffuse_tint').Set(tint_color)
-                self._shader_prim.GetAttribute('inputs:albedo_add').Set(albedo_add)
-            elif material_path is not None:
-                omni.kit.commands.execute(
-                    "BindMaterialCommand",
-                    prim_path=self.prim_path,
-                    material_path=Sdf.Path(material_path),
-                    strength=['strongerThanDescendants']
-                )
-        except:
-            pass
     
-    # Rule color must be set as attributes on the object
-    # Specify whether the rule is matched and the material should change
-    def change_material(self, should_change):
-        if should_change:
-            self.update_shader(self._mat_color, 0.5, self._change_mat_path)
+    def may_update_var(self, var_list):
+        for var in var_list:
+            if var != 'NONE':
+                return True
+        return False
+
+    def update_shader(self, tint_color, albedo_add, material_path):
+        if tint_color is not None:
+            self._shader_prim.GetAttribute('inputs:diffuse_tint').Set(tint_color)
+            self._shader_prim.GetAttribute('inputs:albedo_add').Set(albedo_add)
+        elif material_path != 'NONE':
+            omni.kit.commands.execute(
+                'BindMaterialCommand',
+                prim_path=self.prim_path,
+                material_path=Sdf.Path(material_path),
+                strength=['strongerThanDescendants']
+            )
+    
+    # Rule color must be set as attribute lists on the object
+    # Specify the index of the matched rule
+    def change_material_from_idx(self, i):
+        if i != -1:
+            mat_color = self._mat_color_list[i]
+            mat_color = None if mat_color == 'NONE' else hex_to_vec_3(mat_color)
+            self.update_shader(mat_color, 0.5, self._mat_path_list[i])
         else:
             self.update_shader(self._default_tint_color, self._default_albedo_add, self._default_material)
 
     def is_prim_selected(self):
         return self.selection.is_prim_path_selected(self.prim_path.__str__())
     
-    def match_rule(self, property_value):
-        is_rule_matched = False
+    def match_rules(self, property_value):
         if property_value is not None:
             converted_prop_value = str(property_value) if self._data_type is 'stringValue' else float(property_value)
-            converted_rule_val = str(self._rule_expression.rule_val) if self._data_type is 'stringValue' else float(self._rule_expression.rule_val)
-            is_rule_matched = apply_operator(converted_prop_value, self._rule_expression.rule_op, converted_rule_val)
-        return is_rule_matched
-
-    # def on_destroy(self):
-        # print(f"{__class__.__name__}.on_destroy()->{self.prim_path}")
-
-    # def on_play(self):
-        # print(f"{__class__.__name__}.on_play()->{self.prim_path}")
+            # Check against all rules defined for this prim, in order of data binding definition
+            i = 0
+            for rule in self._rule_expression_list:
+                converted_rule_val = str(rule.rule_val) if self._data_type is 'stringValue' else float(rule.rule_val)
+                is_rule_matched = apply_operator(converted_prop_value, rule.rule_op, converted_rule_val)
+                if is_rule_matched:
+                    return i
+                i += 1
+        return -1
 
     def on_pause(self):
         self._running_time = 0
-        # print(f"{__class__.__name__}.on_pause()->{self.prim_path}")
 
     def on_stop(self):
         self._running_time = 0
-        self.change_material(False)
-        # print(f"{__class__.__name__}.on_stop()->{self.prim_path}")
+        self.change_material_from_idx(-1)
 
     def on_update(self, current_time: float, delta_time: float):
         state = get_state()
@@ -140,8 +161,8 @@ class ModelShader(BehaviorScript):
                 processes.append(future)
                 for _ in concurrent.futures.as_completed(processes):
                     result = _.result()
-                    is_rule_matched = self.match_rule(result)
-                    self.change_material(is_rule_matched)
+                    matched_rule_idx = self.match_rules(result)
+                    self.change_material_from_idx(matched_rule_idx)
             self._running_time = self._running_time + delta_time
         else:
-            self.change_material(False)
+            self.change_material_from_idx(-1)

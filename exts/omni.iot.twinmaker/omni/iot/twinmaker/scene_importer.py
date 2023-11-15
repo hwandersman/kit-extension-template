@@ -2,9 +2,9 @@ import json
 import omni.kit.asset_converter as converter
 import omni.kit.commands
 import omni.usd
-from .script_utils import addModelReference, addPrim
+from .script_utils import add_model_reference, add_prim
 from .prim_transform_utils import TUtil_SetTranslate, TUtil_SetRotateQuat, TUtil_SetScale
-from .aws_utils import getAWSClient
+from .aws_utils import get_aws_client
 from .tag import Tag
 import os
 
@@ -19,153 +19,153 @@ DEFAULT_ASSUME_ROLE_ARN = '[ASSUME_ROLE_ARN]'
 
 
 class SceneImporter:
-    def __init__(self, workspaceId, region, assumeRoleARN=DEFAULT_ASSUME_ROLE_ARN):
-        self._workspaceId = workspaceId
+    def __init__(self, workspace_id, region, assume_role_arn=DEFAULT_ASSUME_ROLE_ARN):
+        self._workspace_id = workspace_id
 
-        self._tmClient = getAWSClient('iottwinmaker', region, assumeRoleARN)
-        self._s3Client = getAWSClient('s3', region, assumeRoleARN)
+        self._tm_client = get_aws_client('iottwinmaker', region, assume_role_arn)
+        self._s3_client = get_aws_client('s3', region, assume_role_arn)
 
-        self._sceneJSON = {}
+        self._scene_json = {}
 
-        workspaceResult = self._tmClient.get_workspace(
-            workspaceId=self._workspaceId
+        workspace_result = self._tm_client.get_workspace(
+            workspaceId=self._workspace_id
         )
-        workspaceBucketArn = workspaceResult['s3Location']
+        workspace_bucket_arn = workspace_result['s3Location']
         # S3 bucket ARN is in the format "arn:aws:s3:::BUCKET_NAME"
-        self._workspaceBucket = workspaceBucketArn.split(':::')[1]
+        self._workspace_bucket = workspace_bucket_arn.split(':::')[1]
 
     # Load scene JSON of sceneId into memory
-    def load_scene(self, sceneId):
-        print(f'Loading scene {sceneId}')
+    def load_scene(self, scene_id):
+        print(f'Loading scene {scene_id}')
         # Get scene JSON path in the workspace S3 bucket
-        sceneResult = self._tmClient.get_scene(
-            workspaceId=self._workspaceId,
-            sceneId=sceneId
+        scene_result = self._tm_client.get_scene(
+            workspaceId=self._workspace_id,
+            sceneId=scene_id
         )
-        sceneLocation = sceneResult['contentLocation']
+        scene_location = scene_result['contentLocation']
 
         # sceneLocation is in the format "s3://BUCKET_NAME/..PATH../SCENE_FILE"
-        sceneFile = sceneLocation.split('/')[-1]
+        scene_file = scene_location.split('/')[-1]
 
         # Get scene JSON from S3
-        result = self._s3Client.get_object(
-            Bucket=self._workspaceBucket,
-            Key=sceneFile
+        result = self._s3_client.get_object(
+            Bucket=self._workspace_bucket,
+            Key=scene_file
         )
-        sceneText = result['Body'].read().decode('utf-8')
-        self._sceneJSON = json.loads(sceneText)
-        nodeLen = len(self._sceneJSON['nodes'])
-        print(f'Loaded scene {sceneId} with {nodeLen} nodes')
+        scene_text = result['Body'].read().decode('utf-8')
+        self._scene_json = json.loads(scene_text)
+        node_len = len(self._scene_json['nodes'])
+        print(f'Loaded scene {scene_id} with {node_len} nodes')
 
-    def __import_progress_callback(current_step: int, total: int):
+    def __import_progress_callback(self, current_step: int, total: int):
         print(f"{current_step} of {total}")
 
     # Download 3D model from S3
-    async def __load_model(self, modelPath):
-        modelAlreadyDownloaded = os.path.isfile(modelPath)
-        if not modelAlreadyDownloaded:
-            print(f'Loading model from S3: {modelPath}')
-            self._s3Client.download_file(
-                self._workspaceBucket,
-                modelPath,
-                modelPath
+    async def __load_model(self, model_path):
+        model_already_downloaded = os.path.isfile(model_path)
+        if not model_already_downloaded:
+            print(f'Loading model from S3: {model_path}')
+            self._s3_client.download_file(
+                self._workspace_bucket,
+                model_path,
+                model_path
             )
 
-    def __convert_file_name(self, filePath, format):
-        fileName = filePath.split('.')[-2]
-        return f'{os.getcwd()}\\{fileName}.{format}'
+    def __convert_file_name(self, file_path, file_format):
+        file_name = file_path.split('.')[-2]
+        return f'{os.getcwd()}\\{file_name}.{file_format}'
 
     # Convert model to USD
-    async def __convert_to_usd(self, modelPath):
+    async def __convert_to_usd(self, model_path):
         task_manager = converter.get_instance()
-        outputPath = self.__convert_file_name(modelPath, 'usd')
-        modelAlreadyImported = os.path.isfile(outputPath)
-        if modelAlreadyImported:
-            return outputPath
+        output_path = self.__convert_file_name(model_path, 'usd')
+        model_already_imported = os.path.isfile(output_path)
+        if model_already_imported:
+            return output_path
 
         task = task_manager.create_converter_task(
-            modelPath,
-            outputPath,
+            model_path,
+            output_path,
             self.__import_progress_callback
         )
         success = await task.wait_until_finished()
         if not success:
-            print(f'Failed to load file: {modelPath}')
+            print(f'Failed to load file: {model_path}')
             print(task.get_status())
             print(task.get_error_message())
             return None
         else:
-            print(f'Successfully imported file at path: {outputPath}')
-            return outputPath
+            print(f'Successfully imported file at path: {output_path}')
+            return output_path
 
     # Get prim at a given path
-    def __get_prim(self, primPath):
-        if primPath is None:
+    def __get_prim(self, prim_path):
+        if prim_path is None:
             return None
         stage = omni.usd.get_context().get_stage()
-        return stage.GetPrimAtPath(primPath)
+        return stage.GetPrimAtPath(prim_path)
 
     # Build hierarchy of USD based on scene JSON hierarchy
-    def __generate_reference_path(self, nodeIdx):
-        if nodeIdx >= len(self._sceneJSON['nodes']):
+    def __generate_reference_path(self, node_idx):
+        if node_idx >= len(self._scene_json['nodes']):
             return None
 
-        nodes = self._sceneJSON['nodes']
-        node = nodes[nodeIdx]
-        modelName = node['name']
+        nodes = self._scene_json['nodes']
+        node = nodes[node_idx]
+        model_name = node['name']
 
         # Build node path based on parent path
         # Assume 1 parent per child
         if 'parent' not in node:
             # Root node
-            path = f'/World/{modelName}'
+            path = f'/World/{model_name}'
         else:
             # Child node
-            parentReferencePath = nodes[node['parent']]['referencePath']
-            path = f'{parentReferencePath}/{modelName}'
+            parent_reference_path = nodes[node['parent']]['referencePath']
+            path = f'{parent_reference_path}/{model_name}'
 
         if 'children' in node:
             for childIdx in node['children']:
                 # Set pointer to parent in children for future reference
-                self._sceneJSON['nodes'][childIdx]['parent'] = nodeIdx
+                self._scene_json['nodes'][childIdx]['parent'] = node_idx
 
         node['referencePath'] = path
         return path
 
     async def import_scene_assets(self):
         print('Importing 3D assets for scene')
-        nodes = self._sceneJSON['nodes']
+        nodes = self._scene_json['nodes']
         # Add empty transform as a parent of all tags
-        addPrim('/World/Tags', 'Xform')
+        add_prim('/World/Tags', 'Xform')
         for i in range(len(nodes)):
             node = nodes[i]
-            modelPrim = None
+            model_prim = None
             for component in node['components']:
                 if 'uri' in component:
-                    modelPath = component['uri']
+                    model_path = component['uri']
                     # 1. Load model from S3
-                    await self.__load_model(modelPath)
+                    await self.__load_model(model_path)
                     # 2. Convert model to USD
-                    usdFilePath = await self.__convert_to_usd(modelPath)
+                    usd_file_path = await self.__convert_to_usd(model_path)
                     # 3. Add reference to local USD in stage hierarchy
-                    primPath = self.__generate_reference_path(i)
-                    addModelReference(primPath, usdFilePath)
+                    prim_path = self.__generate_reference_path(i)
+                    add_model_reference(prim_path, usd_file_path)
                     # 4. Get reference prim to transform it
-                    modelPrim = self.__get_prim(primPath)
+                    model_prim = self.__get_prim(prim_path)
                 elif 'valueDataBinding' in component and component['type'] == 'Tag':
-                    parentNode = nodes[node['parent']]
+                    parent_node = nodes[node['parent']]
                     # Assuming parent is parsed before child, get the name of the model the tag is attached to
-                    primName = parentNode['name']
-                    primPath = f'/World/Tags/{primName}'
-                    tag = Tag(component['valueDataBinding']['dataBindingContext'], primPath)
-                    tag.setTransform(parentNode['transform'], node['transform'])
+                    prim_name = parent_node['name']
+                    prim_path = f'/World/Tags/{prim_name}'
+                    tag = Tag(component['valueDataBinding']['dataBindingContext'], prim_path)
+                    tag.set_transform(parent_node['transform'], node['transform'])
 
-            if modelPrim is not None:
+            if model_prim is not None:
                 transform = node['transform']
-                TUtil_SetTranslate(modelPrim, transform['position'])
-                TUtil_SetRotateQuat(modelPrim, transform['rotation'])
-                TUtil_SetScale(modelPrim, transform['scale'])
+                TUtil_SetTranslate(model_prim, transform['position'])
+                TUtil_SetRotateQuat(model_prim, transform['rotation'])
+                TUtil_SetScale(model_prim, transform['scale'])
             # Add empty transform
             elif 'children' in node:
-                primPath = self.__generate_reference_path(i)
-                addPrim(primPath, 'Xform')
+                prim_path = self.__generate_reference_path(i)
+                add_prim(prim_path, 'Xform')

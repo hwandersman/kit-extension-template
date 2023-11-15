@@ -1,7 +1,7 @@
 import omni.kit.commands
 import os
 from pxr import Sdf
-from .script_utils import addPrim, attachPythonScript, createAndSetPrimAttr
+from .script_utils import add_prim, attach_python_script, create_and_set_string_attr
 from .prim_transform_utils import TUtil_SetTranslate, TUtil_SetScale
 
 ENTITY_ATTR = 'entityId'
@@ -12,7 +12,7 @@ PROPERTY_ATTR = 'propertyName'
 class Tag:
     def __init__(self, dataBindingContext, primPath):
         # Create prim to reference in this object
-        addPrim(primPath, 'Sphere')
+        add_prim(primPath, 'Sphere')
 
         self._entityId = dataBindingContext['entityId']
         self._componentName = dataBindingContext['componentName']
@@ -29,24 +29,24 @@ class Tag:
 
     def __attach_prim_attrs(self):
         prim = self.__get_prim()
-        createAndSetPrimAttr(prim, ENTITY_ATTR, self._entityId)
-        createAndSetPrimAttr(prim, COMPONENT_ATTR, self._componentName)
-        createAndSetPrimAttr(prim, PROPERTY_ATTR, self._propertyName)
+        create_and_set_string_attr(prim, ENTITY_ATTR, self._entityId)
+        create_and_set_string_attr(prim, COMPONENT_ATTR, self._componentName)
+        create_and_set_string_attr(prim, PROPERTY_ATTR, self._propertyName)
 
     def __attach_clickable_script(self):
-        scriptPath = os.path.abspath(f'{os.path.abspath(__file__)}\\..\\..\\..\\..\\PythonScripting\\Clickable.py')
-        attachPythonScript(self._primPath, scriptPath)
+        script_path = os.path.abspath(f'{os.path.abspath(__file__)}\\..\\..\\..\\..\\PythonScripting\\Clickable.py')
+        attach_python_script(self._primPath, script_path)
 
-    def setTransform(self, parentTransform, transform):
+    def set_transform(self, parent_transform, transform):
         prim = self.__get_prim()
 
         # Set tag offset position
-        parentTranslate = parentTransform['position']
+        parent_translate = parent_transform['position']
         translate = transform['position']
         position = [
-            parentTranslate[0] + translate[0],
-            parentTranslate[1] + translate[1],
-            parentTranslate[2] + translate[2]
+            parent_translate[0] + translate[0],
+            parent_translate[1] + translate[1],
+            parent_translate[2] + translate[2]
         ]
         TUtil_SetTranslate(prim, position)
         # Sphere at scale 1 is too small

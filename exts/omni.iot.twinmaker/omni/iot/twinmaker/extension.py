@@ -4,8 +4,9 @@ import omni.ui as ui
 import omni.usd
 import os
 import carb.events
+from pxr import Sdf
 from .scene_importer import DEFAULT_ASSUME_ROLE_ARN, SceneImporter
-from .script_utils import addPrim, attachPythonScript, createAndSetPrimAttr, attachDataBinding
+from .script_utils import add_prim, attach_python_script, create_and_set_string_attr, attach_data_binding
 from .constants import WORKSPACE_ATTR, ASSUME_ROLE_ATTR, REGION_ATTR, ENTITY_ATTR
 
 from omni.services.core import main
@@ -74,47 +75,47 @@ class MyExtension(omni.ext.IExt):
         self._window = ui.Window('AWS IoT TwinMaker', width=300, height=300)
         with self._window.frame:
             with ui.VStack():
-                # workspaceStringModel = ui.SimpleStringModel('[WORKSPACE_ID]')
-                # sceneStringModel = ui.SimpleStringModel('[SCENE_ID]')
-                # assumeRoleStringModel = ui.SimpleStringModel(DEFAULT_ASSUME_ROLE_ARN)
+                # workspace_string_model = ui.SimpleStringModel('[WORKSPACE_ID]')
+                # scene_string_model = ui.SimpleStringModel('[SCENE_ID]')
+                # assume_role_string_model = ui.SimpleStringModel(DEFAULT_ASSUME_ROLE_ARN)
                 # regionStringModel = ui.SimpleStringModel('[REGION]')
                 # dataBindingPathStringModel = ui.SimpleStringModel('[PATH_TO_DATA_BINDING_FILE]')
-                workspaceStringModel = ui.SimpleStringModel('AmazonWarehouse')
-                sceneStringModel = ui.SimpleStringModel('OmniverseTest')
-                assumeRoleStringModel = ui.SimpleStringModel('arn:aws:iam::612335474273:role/CrossAccountTwinMakerAccess')
-                regionStringModel = ui.SimpleStringModel('us-west-2')
-                dataBindingPathStringModel = ui.SimpleStringModel(f'{os.path.abspath(__file__)}\\..\\..\\..\\..\\dataBinding.json')
+                workspace_string_model = ui.SimpleStringModel('AmazonWarehouse')
+                scene_string_model = ui.SimpleStringModel('OmniverseTest')
+                assume_role_string_model = ui.SimpleStringModel('arn:aws:iam::612335474273:role/CrossAccountTwinMakerAccess')
+                region_string_model = ui.SimpleStringModel('us-west-2')
+                data_binding_path_string_model = ui.SimpleStringModel(f'{os.path.abspath(__file__)}\\..\\..\\..\\..\\dataBinding.json')
                 ui.Label('Enter your workspaceId')
-                ui.StringField(model=workspaceStringModel)
+                ui.StringField(model=workspace_string_model)
                 ui.Label('Enter your sceneId')
-                ui.StringField(model=sceneStringModel)
+                ui.StringField(model=scene_string_model)
                 ui.Label('[Optional] Enter a role to assume')
-                ui.StringField(model=assumeRoleStringModel)
+                ui.StringField(model=assume_role_string_model)
                 ui.Label('Enter the region')
-                ui.StringField(model=regionStringModel)
+                ui.StringField(model=region_string_model)
                 ui.Label('Enter the path to USD data binding')
-                ui.StringField(model=dataBindingPathStringModel)
+                ui.StringField(model=data_binding_path_string_model)
 
                 # Import TwinMaker scene
                 def on_click_import():
-                    sceneImporter = SceneImporter(workspaceStringModel.as_string, regionStringModel.as_string, assumeRoleStringModel.as_string)
-                    sceneImporter.load_scene(sceneStringModel.as_string)
-                    asyncio.ensure_future(sceneImporter.import_scene_assets())
+                    scene_importer = SceneImporter(workspace_string_model.as_string, region_string_model.as_string, assume_role_string_model.as_string)
+                    scene_importer.load_scene(scene_string_model.as_string)
+                    asyncio.ensure_future(scene_importer.import_scene_assets())
 
                 # Add Main PythonScripting logic
                 # TODO: Use event system to order script initialization
                 def on_click_init():
-                    logicPrimPath = '/World/Logic'
-                    logicPrim = addPrim(logicPrimPath, 'Xform')
+                    logic_prim_path = '/World/Logic'
+                    logic_prim = add_prim(logic_prim_path, 'Xform')
                     # Attach attributes to pass info to python script
-                    createAndSetPrimAttr(logicPrim, WORKSPACE_ATTR, workspaceStringModel.as_string)
-                    createAndSetPrimAttr(logicPrim, ASSUME_ROLE_ATTR, assumeRoleStringModel.as_string)
-                    createAndSetPrimAttr(logicPrim, REGION_ATTR, regionStringModel.as_string)
+                    create_and_set_string_attr(logic_prim, WORKSPACE_ATTR, workspace_string_model.as_string)
+                    create_and_set_string_attr(logic_prim, ASSUME_ROLE_ATTR, assume_role_string_model.as_string)
+                    create_and_set_string_attr(logic_prim, REGION_ATTR, region_string_model.as_string)
                     # Attach python script
-                    scriptPath = os.path.abspath(f'{os.path.abspath(__file__)}\\..\\..\\..\\..\\PythonScripting\\Main.py')
-                    attachPythonScript(logicPrimPath, scriptPath)
+                    script_path = os.path.abspath(f'{os.path.abspath(__file__)}\\..\\..\\..\\..\\PythonScripting\\Main.py')
+                    attach_python_script(logic_prim_path, script_path)
                     # Assign data bindings to USD nodes
-                    attachDataBinding(dataBindingPathStringModel.as_string)
+                    attach_data_binding(data_binding_path_string_model.as_string)
 
                 with ui.HStack():
                     ui.Button('INIT', clicked_fn=on_click_init)

@@ -4,39 +4,61 @@
         "entityId": "conveyorEntityId",
         "componentName": "conveyor",
         "propertyName": "OperationalStatus",
-        "ruleOperator": "<=",
-        "ruleValue": "3.0",
-        "colorHex": "#FF0000",
-        "changeMaterialPath": ""
+        "rules": [
+            {
+                "ruleOperator": "<=",
+                "ruleValue": "3.0",
+                "colorHex": "#FF0000",
+                "changeMaterialPath": ""
+            }
+        ]
     },
     {
         "primPath": "/World/Cardinal_arm_baked/upper_arm/Section1",
         "entityId": "robotarmEntityId",
         "componentName": "robotarm",
         "propertyName": "Uptime",
-        "ruleOperator": "<",
-        "ruleValue": "400.0",
-        "colorHex": "#FF0000",
-        "changeMaterialPath": ""
+        "rules": [
+            {
+                "ruleOperator": "<",
+                "ruleValue": "100.0",
+                "colorHex": "#FF0000",
+                "changeMaterialPath": ""
+            },
+            {
+                "ruleOperator": ">",
+                "ruleValue": "200.0",
+                "colorHex": "#FFFF00",
+                "changeMaterialPath": ""
+            }
+        ]
     },
     {
         "primPath": "/World/Static_Cart3/CROSSDOCKCART_LOD0_split/Mesh/CROSSDOCKCART_LOD0/principledshader8",
         "entityId": "cart3EntityId",
         "componentName": "cart",
         "propertyName": "Weight",
-        "ruleOperator": "<",
-        "ruleValue": "55.0",
-        "colorHex": "",
-        "changeMaterialPath": "/World/Looks/M_Cart_Metal_Red_A"
+        "rules": [
+            {
+                "ruleOperator": "<",
+                "ruleValue": "55.0",
+                "colorHex": "",
+                "changeMaterialPath": "/World/Looks/M_Cart_Metal_Red_A"
+            }
+        ]
     },
     {
         "primPath": "/Selectable/CartTag",
         "entityId": "cart0EntityId",
         "componentName": "cart",
         "propertyName": "NumberOfPackages",
-        "ruleOperator": "<",
-        "ruleValue": "50.0",
-        "colorHex": "",
-        "changeMaterialPath": "/World/Looks/Rubber_Textured_Red"
+        "rules": [
+            {
+                "ruleOperator": "<",
+                "ruleValue": "50.0",
+                "colorHex": "",
+                "changeMaterialPath": "/World/Looks/Rubber_Textured_Red"
+            }
+        ]
     }
 ]

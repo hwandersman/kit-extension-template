@@ -7,6 +7,7 @@ ENTITY_ATTR = 'entityId'
 COMPONENT_ATTR = 'componentName'
 PROPERTY_ATTR = 'propertyName'
 
+RULES_KEY = 'rules'
 RULE_OP_ATTR = 'ruleOperator'
 RULE_VAL_ATTR = 'ruleValue'
 MAT_COLOR_ATTR = 'colorHex'
