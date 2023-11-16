@@ -4,6 +4,7 @@
         "entityId": "conveyorEntityId",
         "componentName": "conveyor",
         "propertyName": "OperationalStatus",
+        "widget": "ModelShader",
         "rules": [
             {
                 "ruleOperator": "<=",
@@ -17,6 +18,7 @@
         "entityId": "robotarmEntityId",
         "componentName": "robotarm",
         "propertyName": "Uptime",
+        "widget": "ModelShader",
         "rules": [
             {
                 "ruleOperator": "<",
@@ -35,6 +37,7 @@
         "entityId": "cart3EntityId",
         "componentName": "cart",
         "propertyName": "Weight",
+        "widget": "ModelShader",
         "rules": [
             {
                 "ruleOperator": "<",
@@ -47,13 +50,36 @@
         "primPath": "/Selectable/CartTag",
         "entityId": "cart0EntityId",
         "componentName": "cart",
-        "propertyName": "NumberOfPackages",
+        "propertyName": "Weight",
+        "widget": "ModelShader",
         "rules": [
             {
                 "ruleOperator": "<",
-                "ruleValue": 50.0,
+                "ruleValue": 58.0,
                 "changeMaterialPath": "/World/Looks/Rubber_Textured_Red"
             }
         ]
+    },
+    {
+        "primPath": "/World/Widgets/CartScale",
+        "entityId": "cart0EntityId",
+        "componentName": "cart",
+        "propertyName": "NumberOfPackages",
+        "widget": "ModelScaler",
+        "dataBounds": {
+            "minBound": 40,
+            "maxBound": 100
+        }
+    },
+    {
+        "primPath": "/World/Widgets/animated_conveyor",
+        "entityId": "conveyorEntityId",
+        "componentName": "conveyor",
+        "propertyName": "PackagesPerHour",
+        "widget": "MotionIndicator",
+        "dataBounds": {
+            "minBound": 100,
+            "maxBound": 300
+        }
     }
 ]

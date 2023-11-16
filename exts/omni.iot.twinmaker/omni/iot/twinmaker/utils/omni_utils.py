@@ -2,8 +2,8 @@ import omni.kit
 from pxr import Gf
 
 from omni.iot.twinmaker.constants import ENTITY_ATTR, COMPONENT_ATTR, PROPERTY_ATTR, \
-    RULE_OP_ATTR, RULE_VAL_ATTR, WORKSPACE_ATTR, ASSUME_ROLE_ATTR, REGION_ATTR
-from omni.iot.twinmaker.data_models import DataBinding, RuleExpression
+    RULE_OP_ATTR, RULE_VAL_ATTR, WORKSPACE_ATTR, ASSUME_ROLE_ATTR, REGION_ATTR, BOUND_MIN, BOUND_MAX
+from omni.iot.twinmaker.data_models import DataBinding, RuleExpression, DataBounds
 
 from omni.iot.twinmaker.utils.script_utils import add_prim, create_and_set_prim_attr
 
@@ -53,6 +53,12 @@ def get_rule_exp_list_from_prim(prim):
         rule_expression_list.append(RuleExpression(property_name, rule_op_list[i], rule_val_list[i]))
     rule_expression_list = rule_expression_list
     return rule_expression_list
+
+def get_data_bounds_attributes_from_prim(prim, prim_min, prim_max):
+    _min = prim.GetAttribute(BOUND_MIN).Get()
+    _max = prim.GetAttribute(BOUND_MAX).Get()
+    bounds = DataBounds(_min, _max, prim_min, prim_max)
+    return bounds
 
 def get_global_config():
     stage = omni.usd.get_context().get_stage()

@@ -50,3 +50,45 @@ However, the browser is limited for rendering high fidelity, dense, and complex 
     b. Extension will download and convert the scene assets to USD
     c. Extension will set up the scene hierarchy in the currently loaded USD stage
 6. After the scene loads click the "Play" button to see Tag widgets change color based on IoT data streaming in your IoT TwinMaker account
+
+#### Build data bindings in Omniverse
+You can directly bind IoT TwinMaker properties and rule expressions to your USD scene.
+
+Create a JSON file with the following schema:
+```bash
+[
+    {
+        "primPath": "path/to/prim",
+        "entityId": "<TWINMAKER_ENTITY_ID>",
+        "componentName": "<TWINMAKER_COMPONENT_NAME>",
+        "propertyName": "<TWINMAKER_PROPERTY_NAME>",
+        "widget": "<ModelShader | ModelScaler | MotionIndicator>",
+        "rules": [
+            {
+                "ruleOperator": "<COMPARISON_OPERATOR>",
+                "ruleValue": <STRING or FLOAT>,
+                "colorHex": "#XXXXXX",
+                "changeMaterialPath": "/path/to/material"
+            }
+        ],
+        "dataBounds": {
+            "minBound": <MIN>,
+            "maxBound": <MAX>
+        }
+    },
+    ...
+]
+```
+* [REQUIRED] `primPath`: path to a prim in the USD file
+* [REQUIRED] `entityId`: entityId for an IoT TwinMaker entity
+* [REQUIRED] `componentName`: name of an entity's component 
+* [REQUIRED] `propertyName`: name of a component's property
+* [REQUIRED] `widget`: name of the widget that this data is bound to
+* [OPTIONAL] `rules`: list of rule expressions that change the prim based on a property value. Supported for ModelShader
+    * [REQUIRED] `ruleOperator`: either `<`, `>`, `<=`, `>=`, or `==`
+    * [REQUIRED] `ruleValue`: a possible value of the `propertyName`
+    * [OPTIONAL] `colorHex`: the prim material's color tint will be changed to the color hex value provided if `propertyName <OPERATOR> <VALUE>` is true
+    * [OPTIONAL] `changeMaterialPath`: the prim material will be changed to the material provided if `propertyName <OPERATOR> <VALUE>` is true
+* [OPTIONAL] `dataBounds`: supported for ModelScaler and MotionIndicator. Set the `minBound` and `maxBound` of the expected property values
+
+See the example dataBinding.json in the extension code.

@@ -6,7 +6,7 @@ from pxr import Sdf
 import omni.kit.commands
 
 from omni.iot.twinmaker.constants import ENTITY_ATTR, COMPONENT_ATTR, PROPERTY_ATTR, RULE_OP_ATTR, \
-    RULE_VAL_ATTR, MAT_COLOR_ATTR, CHANGE_MAT_PATH, RULES_KEY
+    RULE_VAL_ATTR, MAT_COLOR_ATTR, CHANGE_MAT_PATH, RULES_KEY, BOUNDS_KEY, BOUND_MIN, BOUND_MAX, WIDGET_KEY
 
 # Add reference node to model
 # Omni can reference a USD or GLTF/GLB file directly
@@ -95,6 +95,13 @@ def get_json_field(data, field_name):
         return data[field_name]
     except:
         return None
+    
+def get_prim(stage, prim_path):
+    prim = stage.GetPrimAtPath(prim_path)
+    if len(str(prim.GetPath())) > 0:
+        return prim
+    else:
+        raise Exception(f'Cannot find prim at path: {prim_path}')
 
 # Attach attributes to prims with entity/component/property path, rule expression, and material to change
 # Expected schema from JSON file:
@@ -103,15 +110,16 @@ def get_json_field(data, field_name):
 #   "entityId": <REQUIRED>
 #   "componentName": <REQUIRED>
 #   "propertyName": <REQUIRED>
+#   "widget": <REQUIRED> (ModelShader | ModelScaler | MotionIndicator)
 #   "rule": [{ // optional list of rules
 #       "ruleOperator": <REQUIRED>, // within a rule, these fields are required
 #       "ruleValue": <REQUIRED>,
 #       "colorHex": <OPTIONAL>,
 #       "changeMaterialPath": <OPTIONAL>
 #   }],
-#   "scale": { // optional
-#       "min": <REQUIRED>,
-#       "max": <REQUIRED>
+#   "dataBounds": { // optional
+#       "minBound": <REQUIRED>,
+#       "maxBound": <REQUIRED>
 #   }
 # }]
 def attach_data_binding(data_binding_filepath):
@@ -119,32 +127,46 @@ def attach_data_binding(data_binding_filepath):
     stage = omni.usd.get_context().get_stage()
     data = json.load(file)
 
-    model_shader_script_path = os.path.abspath(f'{os.path.abspath(__file__)}\\..\\..\\scripting\\ModelShader.py')
-
     for data_binding in data:
         prim_path = data_binding['primPath']
-        prim = stage.GetPrimAtPath(prim_path)
+        prim = get_prim(stage, prim_path)
         
         # Set entity / component / property path
         create_and_set_prim_attr(prim, ENTITY_ATTR, data_binding[ENTITY_ATTR])
         create_and_set_prim_attr(prim, COMPONENT_ATTR, data_binding[COMPONENT_ATTR])
         create_and_set_prim_attr(prim, PROPERTY_ATTR, data_binding[PROPERTY_ATTR])
 
-        # Set rule attributes in an array in order
-        rules_list = get_json_field(data_binding, RULES_KEY)
-        # Reset list attributes
-        reset_attr(prim, RULE_OP_ATTR, [])
-        reset_attr(prim, RULE_VAL_ATTR, [])
-        reset_attr(prim, MAT_COLOR_ATTR, [])
-        reset_attr(prim, CHANGE_MAT_PATH, [])
-        for rule in rules_list:
-            create_and_set_prim_array_attr(prim, RULE_OP_ATTR, rule[RULE_OP_ATTR])
-            create_and_set_prim_array_attr(prim, RULE_VAL_ATTR, rule[RULE_VAL_ATTR])
-            create_and_set_prim_array_attr(prim, MAT_COLOR_ATTR, get_json_field(rule, MAT_COLOR_ATTR))
-            create_and_set_prim_array_attr(prim, CHANGE_MAT_PATH, get_json_field(rule, CHANGE_MAT_PATH))
+        widget = data_binding[WIDGET_KEY]
 
-        # Attach ModelShader script
-        attach_python_script(prim_path, model_shader_script_path)
+        if widget == 'ModelShader':
+            # Set rule attributes in an array in order
+            rules_list = data_binding[RULES_KEY]
+            if len(rules_list) > 0:
+                model_shader_script_path = os.path.abspath(f'{os.path.abspath(__file__)}\\..\\..\\scripting\\ModelShader.py')
+                # Reset list attributes
+                reset_attr(prim, RULE_OP_ATTR, [])
+                reset_attr(prim, RULE_VAL_ATTR, [])
+                reset_attr(prim, MAT_COLOR_ATTR, [])
+                reset_attr(prim, CHANGE_MAT_PATH, [])
+
+                for rule in rules_list:
+                    create_and_set_prim_array_attr(prim, RULE_OP_ATTR, rule[RULE_OP_ATTR])
+                    create_and_set_prim_array_attr(prim, RULE_VAL_ATTR, rule[RULE_VAL_ATTR])
+                    create_and_set_prim_array_attr(prim, MAT_COLOR_ATTR, get_json_field(rule, MAT_COLOR_ATTR))
+                    create_and_set_prim_array_attr(prim, CHANGE_MAT_PATH, get_json_field(rule, CHANGE_MAT_PATH))
+                # Attach ModelShader script
+                attach_python_script(prim_path, model_shader_script_path)
+
+        elif widget == 'ModelScaler' or widget == 'MotionIndicator':
+            model_scaler_script_path = os.path.abspath(f'{os.path.abspath(__file__)}\\..\\..\\scripting\\ModelScaler.py')
+            motion_indicator_script_path = os.path.abspath(f'{os.path.abspath(__file__)}\\..\\..\\scripting\\MotionIndicator.py')
+            # Set bounds attributes
+            bounds = data_binding[BOUNDS_KEY]
+            create_and_set_prim_attr(prim, BOUND_MIN, bounds[BOUND_MIN])
+            create_and_set_prim_attr(prim, BOUND_MAX, bounds[BOUND_MAX])
+            # Attach script
+            script = model_scaler_script_path if widget == 'ModelScaler' else motion_indicator_script_path
+            attach_python_script(prim_path, script)
 
 
 def attach_global_config(prim_path):

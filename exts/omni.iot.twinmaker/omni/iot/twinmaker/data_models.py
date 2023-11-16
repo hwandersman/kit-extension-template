@@ -62,3 +62,59 @@ class RuleExpression:
     def __hash__(self) -> int:
         return hash(self.__repr__())
 
+
+class DataBounds:
+    def __init__(self, data_min, data_max, prim_min, prim_max):
+        self._data_min = data_min
+        self._data_max = data_max
+        self._prim_min = prim_min
+        self._prim_max = prim_max
+        
+        data_diff = data_max - data_min
+        if data_diff > 0:
+            self._data_diff = data_diff
+        else:
+            raise Exception('Scale "max" must be larger than "min"')
+
+    @property
+    def data_min(self):
+        return self._data_min
+    
+    @property
+    def data_max(self):
+        return self._data_max
+    
+    @property
+    def prim_min(self):
+        return self._prim_min
+    
+    @property
+    def prim_max(self):
+        return self._prim_max
+    
+    # Normalize value between min and max to a proportional value between prim_min and prim_max
+    def normalize(self, value):
+        if value >= self._data_min and value <= self._data_max:
+            val_diff = value - self._data_min
+            prim_diff = self._prim_max - self._prim_min
+
+            val_perc =  val_diff / self._data_diff
+            prim_prog = val_perc * prim_diff
+
+            # The "max" for a prim may be smaller than the "min"
+            # For example, the motion indicator speed is stopped at 0 and very fast at -0.06
+            if self._prim_max > self._prim_min:
+                return self._prim_min + prim_prog
+            else:
+                return self._prim_min - prim_prog
+        else:
+            return None
+    
+    def __repr__(self):
+        return f"DataBounds({self._data_min}, {self._data_max}, {self._prim_min}, {self._prim_max})"
+
+    def __eq__(self, other):
+        return self.__repr__() == other.__repr__()
+    
+    def __hash__(self) -> int:
+        return hash(self.__repr__())
