@@ -1,4 +1,3 @@
-from  concurrent.futures import ThreadPoolExecutor
 from omni.kit.scripting import BehaviorScript
 import carb.events
 
@@ -17,17 +16,11 @@ class GameState(object):
 
 
 _state = None
-_executor = None
 
 
 def get_state() -> GameState:
     global _state
     return _state
-
-def get_executor():
-    global _executor
-    return _executor
-
 
 class Main(BehaviorScript):
     def get_state(self):
@@ -35,12 +28,6 @@ class Main(BehaviorScript):
         return _state
 
     def on_init(self):
-        global _state
-        if not _state:
-            _state = GameState()
-        global _executor
-        if not _executor:
-            _executor = ThreadPoolExecutor(max_workers=4)
         carb.log_info(f"{__class__.__name__}.on_init()->{self.prim_path}")
 
     def on_destroy(self):
@@ -49,8 +36,13 @@ class Main(BehaviorScript):
         carb.log_info(f"{__class__.__name__}.on_destroy()->{self.prim_path}")
 
     def on_play(self):
+        global _state
+        if not _state:
+            carb.log_info('create game state')
+            _state = GameState()
+
         self.get_state().start()
-        carb.log_info(f"{__class__.__name__}.on_play()->{self.prim_path}")
+        carb.log_info(f"{__class__.__name__}.on_play()->{self.prim_path} - {self.get_state().is_play}")
 
     def on_pause(self):
         self.get_state().pause()
@@ -61,4 +53,5 @@ class Main(BehaviorScript):
         carb.log_info(f"{__class__.__name__}.on_stop()->{self.prim_path}")
 
     def on_update(self, current_time: float, delta_time: float):
+        #carb.log_info(f"{__class__.__name__}.on_update()->{self.prim_path}")
         pass

@@ -5,8 +5,8 @@ from datetime import datetime, timedelta
 from omni.kit.scripting import BehaviorScript
 from pxr import Gf
 
-from .Main import get_state, get_executor
-from ..omni.iot.twinmaker.constants import WORKSPACE_ATTR, ASSUME_ROLE_ATTR, ENTITY_ATTR, COMPONENT_ATTR, PROPERTY_ATTR, DEFAULT_ASSUME_ROLE_ARN, REGION_ATTR
+from omni.iot.twinmaker.Main import get_state, get_executor
+from omni.iot.twinmaker.constants import WORKSPACE_ATTR, ASSUME_ROLE_ATTR, ENTITY_ATTR, COMPONENT_ATTR, PROPERTY_ATTR, DEFAULT_ASSUME_ROLE_ARN, REGION_ATTR
 
 
 def date_to_iso(time):

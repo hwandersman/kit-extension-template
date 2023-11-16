@@ -1,8 +1,9 @@
 import omni.kit.commands
 import os
 from pxr import Sdf
-from .script_utils import add_prim, attach_python_script, create_and_set_string_attr
-from .prim_transform_utils import TUtil_SetTranslate, TUtil_SetScale
+
+from omni.iot.twinmaker.utils.script_utils import add_prim, attach_python_script, create_and_set_prim_attr
+from omni.iot.twinmaker.utils.prim_transform_utils import TUtil_SetTranslate, TUtil_SetScale
 
 ENTITY_ATTR = 'entityId'
 COMPONENT_ATTR = 'componentName'
@@ -29,12 +30,12 @@ class Tag:
 
     def __attach_prim_attrs(self):
         prim = self.__get_prim()
-        create_and_set_string_attr(prim, ENTITY_ATTR, self._entityId)
-        create_and_set_string_attr(prim, COMPONENT_ATTR, self._componentName)
-        create_and_set_string_attr(prim, PROPERTY_ATTR, self._propertyName)
+        create_and_set_prim_attr(prim, ENTITY_ATTR, self._entityId)
+        create_and_set_prim_attr(prim, COMPONENT_ATTR, self._componentName)
+        create_and_set_prim_attr(prim, PROPERTY_ATTR, self._propertyName)
 
     def __attach_clickable_script(self):
-        script_path = os.path.abspath(f'{os.path.abspath(__file__)}\\..\\..\\..\\..\\PythonScripting\\Clickable.py')
+        script_path = os.path.abspath(f'{os.path.abspath(__file__)}\\..\\scripting\\Clickable.py')
         attach_python_script(self._primPath, script_path)
 
     def set_transform(self, parent_transform, transform):
