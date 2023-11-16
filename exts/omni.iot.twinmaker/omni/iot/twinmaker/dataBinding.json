@@ -8,8 +8,7 @@
             {
                 "ruleOperator": "<=",
                 "ruleValue": 3.0,
-                "colorHex": "#FF0000",
-                "changeMaterialPath": ""
+                "colorHex": "#FF0000"
             }
         ]
     },
@@ -22,14 +21,12 @@
             {
                 "ruleOperator": "<",
                 "ruleValue": 100.0,
-                "colorHex": "#FF0000",
-                "changeMaterialPath": ""
+                "colorHex": "#FF0000"
             },
             {
                 "ruleOperator": ">",
                 "ruleValue": 200.0,
-                "colorHex": "#FFFF00",
-                "changeMaterialPath": ""
+                "colorHex": "#FFFF00"
             }
         ]
     },
@@ -42,7 +39,6 @@
             {
                 "ruleOperator": "<",
                 "ruleValue": 55.0,
-                "colorHex": "",
                 "changeMaterialPath": "/World/Looks/M_Cart_Metal_Red_A"
             }
         ]
@@ -56,7 +52,6 @@
             {
                 "ruleOperator": "<",
                 "ruleValue": 50.0,
-                "colorHex": "",
                 "changeMaterialPath": "/World/Looks/Rubber_Textured_Red"
             }
         ]

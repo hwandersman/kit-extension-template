@@ -67,14 +67,14 @@ def create_and_set_prim_attr(prim, attr_name, attr_value):
     attr.Set(attr_value)
 
 def create_and_set_prim_array_attr(prim, attr_name, attr_value):
-    set_attr = attr_value if attr_value != '' else 'NONE'
+    set_attr = attr_value if attr_value != '' and attr_value is not None else 'NONE'
     try:
         array_attr = prim.GetAttribute(attr_name)
         array_value = array_attr.Get()
         concat_array_value = list(array_value) + [set_attr]
         array_attr.Set(concat_array_value)
     except:
-        if isinstance(attr_value, str):
+        if isinstance(set_attr, str):
             attr = prim.CreateAttribute(attr_name, Sdf.ValueTypeNames.StringArray)
         else:
             attr = prim.CreateAttribute(attr_name, Sdf.ValueTypeNames.FloatArray)
@@ -90,16 +90,29 @@ def reset_attr(prim, attr_name, default_val):
     except:
         pass
 
+def get_json_field(data, field_name):
+    try:
+        return data[field_name]
+    except:
+        return None
+
 # Attach attributes to prims with entity/component/property path, rule expression, and material to change
 # Expected schema from JSON file:
 # [{
-#   primPath: /World/prim/path
-#   entityId: <>
-#   componentName: <>
-#   propertyName: <>
-#   ruleOperator: <>
-#   ruleValue: <>
-#   ruleMaterialPath: /World/material/path
+#   "primPath": <REQUIRED>
+#   "entityId": <REQUIRED>
+#   "componentName": <REQUIRED>
+#   "propertyName": <REQUIRED>
+#   "rule": [{ // optional list of rules
+#       "ruleOperator": <REQUIRED>, // within a rule, these fields are required
+#       "ruleValue": <REQUIRED>,
+#       "colorHex": <OPTIONAL>,
+#       "changeMaterialPath": <OPTIONAL>
+#   }],
+#   "scale": { // optional
+#       "min": <REQUIRED>,
+#       "max": <REQUIRED>
+#   }
 # }]
 def attach_data_binding(data_binding_filepath):
     file = open(data_binding_filepath)
@@ -118,7 +131,7 @@ def attach_data_binding(data_binding_filepath):
         create_and_set_prim_attr(prim, PROPERTY_ATTR, data_binding[PROPERTY_ATTR])
 
         # Set rule attributes in an array in order
-        rules_list = data_binding[RULES_KEY]
+        rules_list = get_json_field(data_binding, RULES_KEY)
         # Reset list attributes
         reset_attr(prim, RULE_OP_ATTR, [])
         reset_attr(prim, RULE_VAL_ATTR, [])
@@ -127,8 +140,8 @@ def attach_data_binding(data_binding_filepath):
         for rule in rules_list:
             create_and_set_prim_array_attr(prim, RULE_OP_ATTR, rule[RULE_OP_ATTR])
             create_and_set_prim_array_attr(prim, RULE_VAL_ATTR, rule[RULE_VAL_ATTR])
-            create_and_set_prim_array_attr(prim, MAT_COLOR_ATTR, rule[MAT_COLOR_ATTR])
-            create_and_set_prim_array_attr(prim, CHANGE_MAT_PATH, rule[CHANGE_MAT_PATH])
+            create_and_set_prim_array_attr(prim, MAT_COLOR_ATTR, get_json_field(rule, MAT_COLOR_ATTR))
+            create_and_set_prim_array_attr(prim, CHANGE_MAT_PATH, get_json_field(rule, CHANGE_MAT_PATH))
 
         # Attach ModelShader script
         attach_python_script(prim_path, model_shader_script_path)
