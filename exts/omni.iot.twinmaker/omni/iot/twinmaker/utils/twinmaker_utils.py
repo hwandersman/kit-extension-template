@@ -28,3 +28,14 @@ def apply_operator(left, op, right):
         return left <= right
     else:
         raise Exception('Unsupported rule operator')
+
+def evaluate_rule(rule_expression_list, property_value):
+    if property_value is not None:
+        i = 0
+        for rule in rule_expression_list:
+            is_rule_matched = apply_operator(property_value, rule.rule_op, rule.rule_val)
+            if is_rule_matched:
+                return i
+            i += 1
+    
+    return -1
