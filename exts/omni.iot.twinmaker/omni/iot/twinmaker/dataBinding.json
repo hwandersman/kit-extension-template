@@ -47,7 +47,7 @@
         ]
     },
     {
-        "primPath": "/Selectable/CartTag",
+        "primPath": "/World/CartTag",
         "entityId": "cart0EntityId",
         "componentName": "cart",
         "propertyName": "Weight",
@@ -61,7 +61,7 @@
         ]
     },
     {
-        "primPath": "/Selectable/Fullness_Indicator",
+        "primPath": "/World/Fullness_Indicator",
         "entityId": "cart0EntityId",
         "componentName": "cart",
         "propertyName": "NumberOfPackages",
@@ -72,7 +72,7 @@
         }
     },
     {
-        "primPath": "/Selectable/Fullness_Indicator_01",
+        "primPath": "/World/Fullness_Indicator_01",
         "entityId": "cart1EntityId",
         "componentName": "cart",
         "propertyName": "NumberOfPackages",
@@ -83,7 +83,7 @@
         }
     },
     {
-        "primPath": "/Selectable/Fullness_Indicator_02",
+        "primPath": "/World/Fullness_Indicator_02",
         "entityId": "cart2EntityId",
         "componentName": "cart",
         "propertyName": "NumberOfPackages",
