@@ -5,7 +5,7 @@ import omni.usd
 
 from omni.kit.scripting import BehaviorScript
 
-from omni.iot.twinmaker.utils.omni_utils import get_data_binding_from_prim, get_data_bounds_attributes_from_prim
+from omni.iot.twinmaker.utils.omni_utils import get_prim, get_data_binding_from_prim, get_data_bounds_attributes_from_prim
 from omni.iot.twinmaker.store import DataBindingStore
 
 
@@ -49,8 +49,9 @@ class MotionIndicator(BehaviorScript):
                 (self._last_data_timestamp is not None and latest_datapoint.timestamp is not None \
                     and latest_datapoint.timestamp > self._last_data_timestamp):
                 speed = self._bounds.normalize(float(latest_datapoint.value))
-                carb.log_info(f"setting motion indicator speed with [{latest_datapoint.value}@{latest_datapoint.timestamp}] => {speed}")
-                self.update_speed(speed)
+                if speed is not None:
+                    carb.log_info(f"setting motion indicator speed with [{latest_datapoint.value}@{latest_datapoint.timestamp}] => {speed}")
+                    self.update_speed(speed)
 
                 self._last_data_timestamp = latest_datapoint.timestamp
 
@@ -61,8 +62,7 @@ class MotionIndicator(BehaviorScript):
 
     def __init_motion_indicator_attributes(self):
         # Conveyor/conveyor_speed prim managed motion indicator widget speed
-        stage = omni.usd.get_context().get_stage()
-        speed_prim = stage.GetPrimAtPath(f'{self.prim_path}/Conveyor/conveyor_speed')
+        speed_prim = get_prim(f'{self.prim_path}/Conveyor/conveyor_speed')
         self._speed_attr = speed_prim.GetAttribute('inputs:value')
 
         self._default_speed = self._speed_attr.Get()

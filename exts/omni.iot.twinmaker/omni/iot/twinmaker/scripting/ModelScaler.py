@@ -49,9 +49,10 @@ class ModelScaler(BehaviorScript):
                 (self._last_data_timestamp is not None and latest_datapoint.timestamp is not None \
                     and latest_datapoint.timestamp > self._last_data_timestamp):
                 val = self._bounds.normalize(float(latest_datapoint.value))
-                new_scale = Gf.Vec3f(self._default_scale[0], self._default_scale[1], val)
-                carb.log_info(f"setting scale with [{latest_datapoint.value}@{latest_datapoint.timestamp}] => {new_scale}")
-                self.update_scale(new_scale)
+                if val is not None:
+                    new_scale = Gf.Vec3f(self._default_scale[0], self._default_scale[1], val)
+                    carb.log_info(f"setting scale with [{latest_datapoint.value}@{latest_datapoint.timestamp}] => {new_scale}")
+                    self.update_scale(new_scale)
 
                 self._last_data_timestamp = latest_datapoint.timestamp
 

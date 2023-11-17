@@ -100,6 +100,8 @@ class ModelShader(BehaviorScript):
                     self._default_albedo_add = 0
             
             self._default_material = prim_material_path
+        else:
+            raise Exception('ModelShader attached to prim without a material binding')
     
     def may_update_var(self, var_list):
         for var in var_list:
@@ -124,7 +126,13 @@ class ModelShader(BehaviorScript):
     def change_material_from_idx(self, i):
         mat_color = self._mat_color_list[i]
         mat_color = None if mat_color == 'NONE' else hex_to_vec_3(mat_color)
-        self.update_shader(mat_color, 0.5, self._mat_path_list[i])
+        mat_path = self._mat_path_list[i]
+        mat_path = None if mat_path == 'NONE' else mat_path
+
+        if mat_color is None and mat_path is None:
+            self.reset_material() 
+        else:
+            self.update_shader(mat_color, 0.5, mat_path)
     
     def reset_material(self):
         self.update_shader(self._default_tint_color, self._default_albedo_add, self._default_material)

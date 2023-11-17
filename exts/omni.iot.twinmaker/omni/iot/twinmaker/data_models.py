@@ -1,3 +1,5 @@
+import carb
+
 class DataPoint:
     def __init__(self, timestamp, value) -> None:
         self.timestamp = timestamp
@@ -103,6 +105,7 @@ class DataBounds:
 
             return self._prim_min + prim_prog
         else:
+            carb.log_info(f'Cannot normalize value {value}: outside data bounds ({self._data_min}, {self._data_max})')
             return None
     
     def __repr__(self):

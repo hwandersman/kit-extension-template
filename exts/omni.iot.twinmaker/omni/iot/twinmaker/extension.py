@@ -28,7 +28,6 @@ class MyExtension(omni.ext.IExt):
         if e.type == int(omni.timeline.TimelineEventType.PLAY):
             carb.log_info('timeline changed PLAY')
             context.set_pickable('/', False)
-            context.set_pickable('/World/Selectable', True)
         elif e.type == int(omni.timeline.TimelineEventType.STOP):
             carb.log_info('timeline changed STOP')
             context.set_pickable('/', True)

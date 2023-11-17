@@ -2,7 +2,8 @@ import omni.kit.commands
 import os
 from pxr import Sdf
 
-from omni.iot.twinmaker.utils.script_utils import add_prim, attach_python_script, create_and_set_prim_attr
+from omni.iot.twinmaker.utils.omni_utils import add_prim, create_and_set_prim_attr
+from omni.iot.twinmaker.utils.script_utils import attach_python_script
 from omni.iot.twinmaker.utils.prim_transform_utils import TUtil_SetTranslate, TUtil_SetScale
 
 ENTITY_ATTR = 'entityId'

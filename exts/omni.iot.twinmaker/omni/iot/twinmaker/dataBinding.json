@@ -7,56 +7,42 @@
         "widget": "ModelShader",
         "rules": [
             {
-                "ruleOperator": "<=",
-                "ruleValue": 3.0,
-                "colorHex": "#FF0000"
+                "ruleOperator": "==",
+                "ruleValue": 0
+            },
+            {
+                "ruleOperator": "==",
+                "ruleValue": 2,
+                "colorHex": "#FF8000"
             }
         ]
+    },
+    {
+        "primPath": "/World/animated_conveyor",
+        "entityId": "conveyorEntityId",
+        "componentName": "conveyor",
+        "propertyName": "PackagesPerHour",
+        "widget": "MotionIndicator",
+        "dataBounds": {
+            "minBound": 0,
+            "maxBound": 200
+        }
     },
     {
         "primPath": "/World/Cardinal_arm_baked/upper_arm/Section1",
         "entityId": "robotarmEntityId",
         "componentName": "robotarm",
-        "propertyName": "Uptime",
+        "propertyName": "OperationalStatus",
         "widget": "ModelShader",
         "rules": [
             {
-                "ruleOperator": "<",
-                "ruleValue": 100.0,
-                "colorHex": "#FF0000"
+                "ruleOperator": "==",
+                "ruleValue": 0
             },
             {
-                "ruleOperator": ">",
-                "ruleValue": 200.0,
+                "ruleOperator": "==",
+                "ruleValue": 1,
                 "colorHex": "#FFFF00"
-            }
-        ]
-    },
-    {
-        "primPath": "/World/Static_Cart3/CROSSDOCKCART_LOD0_split/Mesh/CROSSDOCKCART_LOD0/principledshader8",
-        "entityId": "cart3EntityId",
-        "componentName": "cart",
-        "propertyName": "Weight",
-        "widget": "ModelShader",
-        "rules": [
-            {
-                "ruleOperator": "<",
-                "ruleValue": 55.0,
-                "changeMaterialPath": "/World/Looks/M_Cart_Metal_Red_A"
-            }
-        ]
-    },
-    {
-        "primPath": "/World/CartTag",
-        "entityId": "cart0EntityId",
-        "componentName": "cart",
-        "propertyName": "Weight",
-        "widget": "ModelShader",
-        "rules": [
-            {
-                "ruleOperator": "<",
-                "ruleValue": 58.0,
-                "changeMaterialPath": "/World/Looks/Rubber_Textured_Red"
             }
         ]
     },
@@ -72,7 +58,7 @@
         }
     },
     {
-        "primPath": "/World/Fullness_Indicator_01",
+        "primPath": "/World/Fullness_Indicator_02",
         "entityId": "cart1EntityId",
         "componentName": "cart",
         "propertyName": "NumberOfPackages",
@@ -83,7 +69,7 @@
         }
     },
     {
-        "primPath": "/World/Fullness_Indicator_02",
+        "primPath": "/World/Fullness_Indicator_01",
         "entityId": "cart2EntityId",
         "componentName": "cart",
         "propertyName": "NumberOfPackages",
@@ -94,14 +80,39 @@
         }
     },
     {
-        "primPath": "/World/animated_conveyor",
-        "entityId": "conveyorEntityId",
-        "componentName": "conveyor",
-        "propertyName": "PackagesPerHour",
-        "widget": "MotionIndicator",
-        "dataBounds": {
-            "minBound": 100,
-            "maxBound": 300
-        }
+        "primPath": "/World/Fullness_Indicator/Cube",
+        "entityId": "cart0EntityId",
+        "componentName": "cart",
+        "propertyName": "OperationalStatus",
+        "widget": "ModelShader",
+        "rules": [
+            {
+                "ruleOperator": "==",
+                "ruleValue": 0
+            },
+            {
+                "ruleOperator": "==",
+                "ruleValue": 1,
+                "changeMaterialPath": "/World/Looks/Indicator_Yellow"
+            }
+        ]
+    },
+    {
+        "primPath": "/World/Fullness_Indicator_02/Cube",
+        "entityId": "cart1EntityId",
+        "componentName": "cart",
+        "propertyName": "OperationalStatus",
+        "widget": "ModelShader",
+        "rules": [
+            {
+                "ruleOperator": "==",
+                "ruleValue": 0
+            },
+            {
+                "ruleOperator": "==",
+                "ruleValue": 1,
+                "changeMaterialPath": "/World/Looks/Indicator_Yellow"
+            }
+        ]
     }
 ]

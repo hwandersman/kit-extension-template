@@ -5,7 +5,7 @@ import omni.kit.asset_converter as converter
 import omni.kit.commands
 import omni.usd
 
-from omni.iot.twinmaker.utils.script_utils import add_model_reference, add_prim
+from omni.iot.twinmaker.utils.omni_utils import add_model_reference, add_prim
 from omni.iot.twinmaker.utils.prim_transform_utils import TUtil_SetTranslate, TUtil_SetRotateQuat, TUtil_SetScale
 from omni.iot.twinmaker.utils.aws_utils import get_aws_client
 from omni.iot.twinmaker.tag import Tag

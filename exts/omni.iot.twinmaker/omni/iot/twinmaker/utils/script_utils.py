@@ -1,33 +1,12 @@
-import json
 import os
 import carb
 from pxr import Sdf
 
 import omni.kit.commands
 
+from omni.iot.twinmaker.utils.omni_utils import get_prim, create_and_set_prim_attr, create_and_set_prim_array_attr
 from omni.iot.twinmaker.constants import ENTITY_ATTR, COMPONENT_ATTR, PROPERTY_ATTR, RULE_OP_ATTR, \
     RULE_VAL_ATTR, MAT_COLOR_ATTR, CHANGE_MAT_PATH, RULES_KEY, BOUNDS_KEY, BOUND_MIN, BOUND_MAX, WIDGET_KEY
-
-# Add reference node to model
-# Omni can reference a USD or GLTF/GLB file directly
-def add_model_reference(primPath, modelPath):
-    omni.kit.commands.execute(
-        'CreateReference',
-        usd_context=omni.usd.get_context(),
-        path_to=Sdf.Path(primPath),
-        asset_path=modelPath
-    )
-
-
-def add_prim(primPath, primType):
-    omni.kit.commands.execute(
-        'CreatePrim',
-        prim_type=primType,
-        prim_path=primPath
-    )
-    stage = omni.usd.get_context().get_stage()
-    return stage.GetPrimAtPath(primPath)
-
 
 # Source: https://github.com/mati-nvidia/developer-office-hours/blob/main/exts/maticodes.doh_2023_01_13/scripts/add_script_component.py
 def attach_python_script(primPath, scriptPath):
@@ -56,33 +35,6 @@ def attach_python_script(primPath, scriptPath):
         scripts.append(scriptPath)
         attr.Set(scripts)
 
-
-def create_and_set_prim_attr(prim, attr_name, attr_value):
-    if isinstance(attr_value, str):
-        carb.log_info(f'{attr_name} is string')
-        attr = prim.CreateAttribute(attr_name, Sdf.ValueTypeNames.String)
-    else:
-        carb.log_info(f'{attr_name} is float')
-        attr = prim.CreateAttribute(attr_name, Sdf.ValueTypeNames.Float)
-    attr.Set(attr_value)
-
-def create_and_set_prim_array_attr(prim, attr_name, attr_value):
-    set_attr = attr_value if attr_value != '' and attr_value is not None else 'NONE'
-    try:
-        array_attr = prim.GetAttribute(attr_name)
-        array_value = array_attr.Get()
-        concat_array_value = list(array_value) + [set_attr]
-        array_attr.Set(concat_array_value)
-    except:
-        if isinstance(set_attr, str):
-            attr = prim.CreateAttribute(attr_name, Sdf.ValueTypeNames.StringArray)
-        else:
-            attr = prim.CreateAttribute(attr_name, Sdf.ValueTypeNames.FloatArray)
-
-        carb.log_info(f'{attr_name} is {set_attr}')
-
-        attr.Set([set_attr])
-
 def reset_attr(prim, attr_name, default_val):
     try:
         attr = prim.GetAttribute(attr_name).Get()
@@ -95,13 +47,7 @@ def get_json_field(data, field_name):
         return data[field_name]
     except:
         return None
-    
-def get_prim(stage, prim_path):
-    prim = stage.GetPrimAtPath(prim_path)
-    if len(str(prim.GetPath())) > 0:
-        return prim
-    else:
-        raise Exception(f'Cannot find prim at path: {prim_path}')
+
 
 # Attach attributes to prims with entity/component/property path, rule expression, and material to change
 # Expected schema from JSON file:
@@ -123,11 +69,9 @@ def get_prim(stage, prim_path):
 #   }
 # }]
 def attach_data_binding(data_binding_config):
-    stage = omni.usd.get_context().get_stage()
-
     for data_binding in data_binding_config:
         prim_path = data_binding['primPath']
-        prim = get_prim(stage, prim_path)
+        prim = get_prim(prim_path)
         
         # Set entity / component / property path
         create_and_set_prim_attr(prim, ENTITY_ATTR, data_binding[ENTITY_ATTR])
