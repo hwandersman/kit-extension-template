@@ -122,12 +122,10 @@ def get_prim(stage, prim_path):
 #       "maxBound": <REQUIRED>
 #   }
 # }]
-def attach_data_binding(data_binding_filepath):
-    file = open(data_binding_filepath)
+def attach_data_binding(data_binding_config):
     stage = omni.usd.get_context().get_stage()
-    data = json.load(file)
 
-    for data_binding in data:
+    for data_binding in data_binding_config:
         prim_path = data_binding['primPath']
         prim = get_prim(stage, prim_path)
         

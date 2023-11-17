@@ -45,6 +45,8 @@ class GetSelectedEntityResponseModel(BaseModel):
     
 router = routers.ServiceAPIRouter()
 
+entity_prim_map = {}
+
 def get_context():
   return omni.usd.get_context()
 
@@ -62,6 +64,12 @@ def get_attribute_value(prim: Usd.Prim, attribute_name: str):
     attr = prim.GetAttribute(attribute_name)
     return attr.Get()
   
+
+def set_entity_prim_map(value):
+    global entity_prim_map
+    entity_prim_map = value
+
+
 @router.get(
     "/selected_entity",
     summary="Return selected entity id.",
@@ -72,14 +80,18 @@ async def get_selected_entity() -> GetSelectedEntityResponseModel:
     usd_context = get_context()
     stage = usd_context.get_stage()
     prim_paths = usd_context.get_selection().get_selected_prim_paths()
-    carb.log_info("selected prim paths " + str(prim_paths))
+    # carb.log_info("selected prim paths " + str(prim_paths))
     
     if not prim_paths:
         return GetSelectedEntityResponseModel(entity_id=None)
 
     prim = stage.GetPrimAtPath(prim_paths[0])
-    val = get_attribute_value(prim, "entity_id")
-    carb.log_info("entity_id " + str(val))
+    val = get_attribute_value(prim, "entityId")
+
+    if not val:
+        return GetSelectedEntityResponseModel(entity_id=None)
+
+    carb.log_info("entityId " + str(val))
     return GetSelectedEntityResponseModel(entity_id=str(val))
 
 @router.post(
@@ -91,6 +103,10 @@ async def get_selected_entity() -> GetSelectedEntityResponseModel:
 def set_selected_entity(request: SetSelectedEntityRequestModel) -> SetSelectedEntityResponseModel:
     entity_id = request.entity_id
     carb.log_info("set_selected_entity " + str(entity_id))
-    context = get_context()
-    context.get_selection().set_selected_prim_paths(['/World/Interaction/' + entity_id], True)
-    return SetSelectedEntityResponseModel(success=True)
+    if entity_id in entity_prim_map:
+        primPath = entity_prim_map[entity_id]
+        context = get_context()
+        context.get_selection().set_selected_prim_paths([primPath], True)
+        return SetSelectedEntityResponseModel(success=True)
+    else:
+        return SetSelectedEntityResponseModel(success=False)
