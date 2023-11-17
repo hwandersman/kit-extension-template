@@ -101,12 +101,7 @@ class DataBounds:
             val_perc =  val_diff / self._data_diff
             prim_prog = val_perc * prim_diff
 
-            # The "max" for a prim may be smaller than the "min"
-            # For example, the motion indicator speed is stopped at 0 and very fast at -0.06
-            if self._prim_max > self._prim_min:
-                return self._prim_min + prim_prog
-            else:
-                return self._prim_min - prim_prog
+            return self._prim_min + prim_prog
         else:
             return None
     

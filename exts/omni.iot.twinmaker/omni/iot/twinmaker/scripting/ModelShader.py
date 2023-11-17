@@ -10,7 +10,6 @@ from omni.iot.twinmaker.utils.twinmaker_utils import evaluate_rule
 from omni.iot.twinmaker.store import DataBindingStore
 from omni.iot.twinmaker.constants import MAT_COLOR_ATTR, CHANGE_MAT_PATH
 
-
 class ModelShader(BehaviorScript):
     def on_init(self):
         self.__init_attributes()
@@ -33,6 +32,8 @@ class ModelShader(BehaviorScript):
         self._is_playing = True
         carb.log_info(f"{__class__.__name__}.on_play()->{self.prim_path}: subscribe {self._data_binding}")
         DataBindingStore.get_instance().subscribe(self._data_binding)
+        context = omni.usd.get_context()
+        context.set_pickable(str(self.prim_path), True)
         carb.log_info(f"{__class__.__name__}.on_play()->{self.prim_path}")
 
     def on_pause(self):

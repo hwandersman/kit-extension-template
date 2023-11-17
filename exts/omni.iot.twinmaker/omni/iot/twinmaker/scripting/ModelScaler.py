@@ -1,6 +1,7 @@
 from pxr import Sdf, Gf
 import carb
 import carb.events
+import omni.usd
 
 from omni.kit.scripting import BehaviorScript
 
@@ -27,6 +28,8 @@ class ModelScaler(BehaviorScript):
         self._is_playing = True
         carb.log_info(f"{__class__.__name__}.on_play()->{self.prim_path}: subscribe {self._data_binding}")
         DataBindingStore.get_instance().subscribe(self._data_binding)
+        context = omni.usd.get_context()
+        context.set_pickable(str(self.prim_path), True)
         carb.log_info(f"{__class__.__name__}.on_play()->{self.prim_path}")
 
     def on_pause(self):

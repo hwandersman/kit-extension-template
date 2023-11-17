@@ -61,7 +61,7 @@
         ]
     },
     {
-        "primPath": "/World/Widgets/CartScale",
+        "primPath": "/Selectable/Fullness_Indicator",
         "entityId": "cart0EntityId",
         "componentName": "cart",
         "propertyName": "NumberOfPackages",
@@ -72,7 +72,29 @@
         }
     },
     {
-        "primPath": "/World/Widgets/animated_conveyor",
+        "primPath": "/Selectable/Fullness_Indicator_01",
+        "entityId": "cart1EntityId",
+        "componentName": "cart",
+        "propertyName": "NumberOfPackages",
+        "widget": "ModelScaler",
+        "dataBounds": {
+            "minBound": 40,
+            "maxBound": 100
+        }
+    },
+    {
+        "primPath": "/Selectable/Fullness_Indicator_02",
+        "entityId": "cart2EntityId",
+        "componentName": "cart",
+        "propertyName": "NumberOfPackages",
+        "widget": "ModelScaler",
+        "dataBounds": {
+            "minBound": 40,
+            "maxBound": 100
+        }
+    },
+    {
+        "primPath": "/World/animated_conveyor",
         "entityId": "conveyorEntityId",
         "componentName": "conveyor",
         "propertyName": "PackagesPerHour",
