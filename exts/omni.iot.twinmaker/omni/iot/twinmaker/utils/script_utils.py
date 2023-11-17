@@ -122,12 +122,12 @@ def get_prim(stage, prim_path):
 #       "maxBound": <REQUIRED>
 #   }
 # }]
-def attach_data_binding(data_binding_filepath):
-    file = open(data_binding_filepath)
+def attach_data_binding(data_binding_config):
     stage = omni.usd.get_context().get_stage()
-    data = json.load(file)
 
-    for data_binding in data:
+    model_shader_script_path = os.path.abspath(f'{os.path.abspath(__file__)}\\..\\..\\scripting\\ModelShader.py')
+
+    for data_binding in data_binding_config:
         prim_path = data_binding['primPath']
         prim = get_prim(stage, prim_path)
         

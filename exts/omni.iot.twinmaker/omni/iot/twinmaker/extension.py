@@ -1,5 +1,6 @@
 import os
 import asyncio
+import json
 
 import omni.ext
 import omni.ui as ui
@@ -8,7 +9,7 @@ import carb.events
 
 from omni.services.core import main
 
-from omni.iot.twinmaker.services.api import router as api_router
+from omni.iot.twinmaker.services.api import router as api_router, set_entity_prim_map
 from omni.iot.twinmaker.store import DataBindingStore
 from omni.iot.twinmaker.scene_importer import SceneImporter
 from omni.iot.twinmaker.utils.omni_utils import create_global_config_prim
@@ -86,8 +87,19 @@ class MyExtension(omni.ext.IExt):
                     global_logic_prim_path = create_global_config_prim(global_config['region'], global_config['role'], global_config['workspace_id'])
                     attach_global_config(global_logic_prim_path)
 
+                    
+                    file = open(data_binding_path_string_model.as_string)
+                    data_binding_config = json.load(file)
+
                     # Assign data bindings to USD nodes
-                    attach_data_binding(data_binding_path_string_model.as_string)
+                    attach_data_binding(data_binding_config)
+
+                    entity_prim_map = {}
+                    for data_binding in data_binding_config:
+                        prim_path = data_binding['primPath']
+                        entity_id = data_binding['entityId']
+                        entity_prim_map[entity_id] = prim_path
+                    set_entity_prim_map(entity_prim_map)
 
                     DataBindingStore.force_reinit()
 
